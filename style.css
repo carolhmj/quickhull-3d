@@ -1,0 +1,21 @@
+body {
+    margin: 0;
+}
+
+#renderCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+#mainContainer {
+    width: 100%;
+    height: 100%;
+    position: relative;    
+}
+
+#buttonsContainer {
+    position: absolute;
+    bottom: 10;
+    left: 10;
+    display: flex;
+}

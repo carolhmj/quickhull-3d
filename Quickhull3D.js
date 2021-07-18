@@ -198,9 +198,11 @@ class Quickhull3D {
     }
 
     removePointFromFace(v, f) {
+        console.log('remove point', v, 'from face', f);
         f.removeVertexFromOutsideSet(v);
+        removeVertexFromList(v, this.claimed);
         console.log('f and v after removal', f, v);
-        removeVertexFromList(this.claimed, v);
+        console.log('claimed list after removal', this.claimed);
     }
 
     calculateHorizon(eye, edge0, face, horizon) {

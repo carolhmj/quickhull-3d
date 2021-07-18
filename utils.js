@@ -34,6 +34,7 @@ function signedArea(a, b, c) {
 }
 
 function removeVertexFromList(remove, list) {
+    console.log('remove vertex', remove, 'from list', list);
     let idxToRemove = -1;
     for (let i = 0; i < list.length; i++) {
         const outsideVert = list[i];

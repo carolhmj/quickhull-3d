@@ -77,15 +77,26 @@ function main() {
     // Each entry is a group of points that represents a separate group on the input
     // let inputGroups = [BABYLON.MeshBuilder.CreateBox("test-box", {size: 1}, scene)];
     let inputGroups = [];
+    // let testGroup = [
+    //     new BABYLON.Vector3(1,1,1),
+    //     new BABYLON.Vector3(1,1,-1),
+    //     new BABYLON.Vector3(-1,1,-1),
+    //     new BABYLON.Vector3(-1,1,1),
+    //     new BABYLON.Vector3(1,-1,1),
+    //     new BABYLON.Vector3(1,-1,-1),
+    //     new BABYLON.Vector3(-1,-1,-1),
+    //     new BABYLON.Vector3(-1,-1,1),
+    // ];
     let testGroup = [
-        new BABYLON.Vector3(1,1,1),
-        new BABYLON.Vector3(1,1,-1),
-        new BABYLON.Vector3(-1,1,-1),
-        new BABYLON.Vector3(-1,1,1),
-        new BABYLON.Vector3(1,-1,1),
-        new BABYLON.Vector3(1,-1,-1),
-        new BABYLON.Vector3(-1,-1,-1),
-        new BABYLON.Vector3(-1,-1,1),
+        new BABYLON.Vector3(0,1,0),
+        new BABYLON.Vector3(2,0,0),
+        new BABYLON.Vector3(-1,0,0),
+        new BABYLON.Vector3(0,0,0.5),
+        new BABYLON.Vector3(0,0,1),
+        new BABYLON.Vector3(-0.5,0,0),
+        new BABYLON.Vector3(1,0,0),
+        new BABYLON.Vector3(0,0.5,0),
+        new BABYLON.Vector3(1,0,1),
     ];
     inputGroups.push(testGroup);
     // Each entry is an animation representing the construction of a convex hull

@@ -19,7 +19,7 @@ function signedDistanceToPlane(a, b, c, p) {
 function signedArea(a, b, c) {
     // console.log('compute signed area for', a, b, c);
     const o = a.add(b).add(c).scale(1/3);
-    console.log('o', o);
+    // console.log('o', o);
     const oa = a.subtract(o);
     const ob = b.subtract(o);
     const oc = c.subtract(o);

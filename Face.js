@@ -1,10 +1,10 @@
 import {HalfEdge} from './HalfEdge.js';
 import {signedArea, signedDistanceToPlane, removeVertexFromList} from './utils.js'
 
-class FaceTypes {
-    VISIBLE = 1;
-    NON_CONVEX = 2;
-    DELETED = 3;
+const FaceTypes = {
+    VISIBLE: 1,
+    NON_CONVEX: 2,
+    DELETED: 3,
 }
 
 class Face {
@@ -14,6 +14,7 @@ class Face {
         this.normal = BABYLON.Vector3();
         // this.centroid = BABYLON.Vector3();
         this.mark = FaceTypes.VISIBLE;
+        // console.log('created face with type', this.mark);
         this.points = [null, null, null];
         this.halfEdges = [null, null, null];
         this.outside = []; // Set of vertices that are outside (not coplanar) this face
@@ -79,4 +80,4 @@ class Face {
     }
 }
 
-export {Face};
+export {Face, FaceTypes};

@@ -1,4 +1,4 @@
-import {Face} from './Face.js';
+import {Face, FaceTypes} from './Face.js';
 import {pointToLineDistance, signedDistanceToPlane, removeVertexFromList} from './utils.js';
 
 const DISTANCE_TOLERANCE = 1E-5;
@@ -15,6 +15,8 @@ class Quickhull3D {
         this.claimed = [] // List of BABYLON.Vector3 objects
         this.unclaimed = [];
         this.horizon = [];
+        this.newFaces = [];
+        this.faces = [];
     }
 
     
@@ -133,6 +135,8 @@ class Quickhull3D {
         
         console.log('initial polygon', faces);
 
+        this.faces.push(...faces);
+
         // Go through the points again and check the distance to each one of the 
         // individual faces
         for (let v of this.vertexList) {
@@ -190,21 +194,134 @@ class Quickhull3D {
     }
 
     addPointToHull(eye) {
+        console.log('adding eye point', eye, 'to hull');
         this.horizon = [];
         this.unclaimed = [];
 
         this.removePointFromFace(eye, eye.face);
         this.calculateHorizon(eye, null, eye.face, this.horizon);
+        console.log('horizon', this.horizon);
+        // this.newFaces = []; 
+        this.addNewFaces(this.newFaces, eye, this.horizon);
+
+        // Can do merge pass here, leave for later
+        // ...
+
+        this.resolveUnclaimedPoints(this.newFaces);
+    }
+
+    resolveUnclaimedPoints(newFaces) {
+        for (let unclaimedVert of this.unclaimed) {
+            let maxDist = DISTANCE_TOLERANCE;
+            let maxFace = null;
+
+            for (let f of newFaces) {
+                if (f.mark === FaceTypes.VISIBLE) {
+                    const dist = f.signedDistanceFromPoint(unclaimedVert);
+                    if (dist > maxDist) {
+                        maxDist = dist;
+                        maxFace = f;
+                    }
+                    // Not sure why this is needed, remove it?
+                    if (maxDist > 1000*DISTANCE_TOLERANCE) {
+                        break;
+                    }
+                }
+            }
+
+            if (maxFace !== null) {
+                this.addPointToFace(v, maxFace);
+            }
+        }
+    }
+
+    addNewFaces(newFaces, eye, horizon) {
+        // this.newFaces = [];
+        newFaces = [];
+        let edgePrev = null;
+        let edgeBegin = null;
+        
+        for (let hedge of horizon) {
+            let horizonHe = hedge.next;
+            let hedgeSide = this.addAdjoiningFace(eye, horizonHe);
+            console.log('new face:', hedgeSide.face, 'with points', hedgeSide.face.points);
+            if (edgePrev != null) {
+                hedgeSide.next.setTwin(edgePrev);
+            } else {
+                edgeBegin = hedgeSide;
+            }
+
+            newFaces.push(hedgeSide.face);
+            edgePrev = hedgeSide;
+        }
+
+        edgeBegin.next.setTwin(edgePrev);
+    }
+
+    addAdjoiningFace(eye, edge) {
+        const face = new Face();
+        face.buildFromPoints(eye, edge.tail(), edge.head());
+        this.faces.push(face);
+        face.halfEdges[2].setTwin(edge.twin);
+        return face.halfEdges[0];
     }
 
     removePointFromFace(v, f) {
+        console.log('removing point', v, 'from face', f);
         f.removeVertexFromOutsideSet(v);
-        console.log('f and v after removal', f, v);
-        removeVertexFromList(this.claimed, v);
+        removeVertexFromList(v, this.claimed);
+        // console.log('f and v after removal', f, v);
+    }
+
+    removeAllPointsFromFace(f) {
+        let removedPts = [...f.outside];
+        for (let v of f.outside) {
+            this.removePointFromFace(v, f);
+        }
+        return removedPts;
     }
 
     calculateHorizon(eye, edge0, face, horizon) {
+        this.deleteFacePoints(face, null);
+        face.mark = FaceTypes.DELETED;
+        console.log('visiting face', face, 'deleted');
+        let edge = null;
+        if (edge0 === null) {
+            edge0 = face.halfEdges[0];
+            edge = edge0;
+        } else {
+            edge = edge0.next;
+        }
+        do {
+            let oppositeFace = edge.oppositeFace();
+            if (oppositeFace.mark === FaceTypes.VISIBLE) {
+                if (oppositeFace.signedDistanceFromPoint(eye) > DISTANCE_TOLERANCE) {
+                    this.calculateHorizon(eye, edge.twin, oppositeFace, horizon);
+                } else {
+                    horizon.push(edge);
+                    console.log('adding horizon edge', edge);
+                }
+            }
+            edge = edge.next;
+        } while (edge !== edge0); // reference comparison, is that safe enough?
+    }
 
+    deleteFacePoints(face, absorbingFace) {
+        let faceVerts = this.removeAllPointsFromFace(face);
+        if (faceVerts != null) {
+            if (absorbingFace == null) {
+                this.unclaimed.push(...faceVerts);
+            } else {
+                for (let v of faceVerts) {
+                    const dist = absorbingFace.signedDistanceFromPoint(v);
+                    if (dist > DISTANCE_TOLERANCE) {
+                        this.addPointToFace(v, absorbingFace);
+                    } else {
+                        this.unclaimed.push(v);
+                    }
+                }
+            }
+        }
     }
 
     reindexFacesAndVertices() {
@@ -229,6 +346,7 @@ class Quickhull3D {
         }
         this.reindexFacesAndVertices();
         console.log('finished convex hull');
+        console.log('list of convex hull faces', this.faces);
     }
 
     // Returns a Babylon mesh for the convex hull

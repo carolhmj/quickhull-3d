@@ -17,6 +17,7 @@ class Quickhull3D {
         this.horizon = [];
         this.newFaces = [];
         this.faces = [];
+        this.renderableMesh = new BABYLON.Mesh();
     }
 
     
@@ -349,12 +350,72 @@ class Quickhull3D {
         console.log('list of convex hull faces', this.faces);
     }
 
-    // Returns a Babylon mesh for the convex hull
-    render() {
-        const mesh = new BABYLON.Mesh("mesh");
+    // Reference for setting a color to each face
+    // https://playground.babylonjs.com/#Y8HRP3#11
+    buildRenderableMesh() {
         const vertexData = new BABYLON.VertexData();
 
+        // Iterates over the list of faces, adding its vertices to a list and building
+        // the indices. Besides, it selects the color of the face based on if the face
+        // is deleted or not
+        // Probably easier to render if vertices aren't unique
+        const vertices = []; 
+        const faces = [];
+        const normals = []
+        const types = [];
+        for (let f of this.faces) {
+            for (v of f.points) {
+                vertices.push(v.x, v.y, v.z);
+                const vlen = vertices.length();
+                faces.push(vlen-3, vlen-2, vlen-1);
+                const normal = f.normal;
+                normals.push(normal.x, normal.y, normal.z);
+            }
+            types.push(f.mark);
+        }
 
+        // One material for each type
+        const materialValues = [
+            {diffuseColor: new BABYLON.Color3(0,0,1), alpha: 0.8},
+            {diffuseColor: new BABYLON.Color3(0,1,0), alpha: 0.2},
+            {diffuseColor: new BABYLON.Color3(1,0,0), alpha: 0.2},
+        ];
+        const materials = [];
+        const multimaterial = new BABYLON.MultiMaterial("convex-hull");
+        
+        // let i = 0;
+        // for (let mv of materialValues) {
+        //     const nm = new BABYLON.StandardMaterial("material" + i);
+        //     for (let [property, value] of Object.entries(mv)) {
+        //         nm[property] = value;
+        //     }
+        //     materials.push(nm);
+        //     multimaterial.subMaterials.push(nm);
+        // }
+        for (let i = 0; i < faces.length / 3; i++) {
+            const type = types[i];
+            const nm = new BABYLON.StandardMaterial("face" + i);
+            const mv = materialValues[type];
+            for (let [property, value] of Object.entries(mv)) {
+                nm[property] = value;
+            }
+            materials.push(nm);
+            multimaterial.subMaterials.push(nm);
+        }
+
+        vertexData.positions = vertices;
+        vertexData.indices = faces;
+        vertexData.normals = normals;
+
+        vertexData.applyToMesh(this.renderableMesh);
+
+        // Create a submesh for every face
+        this.renderableMesh.subMeshes = [];
+        for (let i = 0; i < types.length; i++) {
+            new BABYLON.SubMesh(i, 0, vertices.length(), i*3, (i+1)*3, this.renderableMesh);
+        }
+
+        this.renderableMesh.material = multimaterial;
     }
 }
 

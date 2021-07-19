@@ -2,9 +2,9 @@ import {HalfEdge} from './HalfEdge.js';
 import {signedArea, signedDistanceToPlane, removeVertexFromList} from './utils.js'
 
 const FaceTypes = {
-    VISIBLE: 1,
-    NON_CONVEX: 2,
-    DELETED: 3,
+    VISIBLE: 0,
+    NON_CONVEX: 1,
+    DELETED: 2,
 }
 
 class Face {

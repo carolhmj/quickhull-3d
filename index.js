@@ -49,10 +49,12 @@ function createScene(engine, canvas) {
     camera.attachControl(canvas, true);
 
     // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, -1, 0), scene);
+    var light2 = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
     // Default intensity is 1. Let's dim the light a small amount
     light.intensity = 0.7;
+    light2.intensity = 0.4;
 
     return scene;
 }
@@ -129,6 +131,12 @@ function main() {
     runQuickhullButton.addEventListener("click", function() {
         // outputHullConstructions = inputGroups.map(inputGroup => constructHull(inputGroup.getVerticesData(BABYLON.VertexBuffer.PositionKind)));
         outputHullConstructions = inputGroups.map(inputGroup => constructHull(inputGroup));
+        console.log('output hulls', outputHullConstructions);
+    });
+
+    const showQuickhullButton = document.getElementById("showQuickhull");
+    showQuickhullButton.addEventListener("click", function() {
+        outputHullConstructions.forEach(outputHull => outputHull.buildRenderableMesh(scene));
     });
 }
 

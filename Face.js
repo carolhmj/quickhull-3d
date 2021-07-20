@@ -10,18 +10,24 @@ const FaceTypes = {
 class Face {
 
 
-    constructor() {
+    constructor(step) {
         this.normal = BABYLON.Vector3();
         // this.centroid = BABYLON.Vector3();
         this.mark = FaceTypes.VISIBLE;
-        // console.log('created face with type', this.mark);
         this.points = [null, null, null];
         this.halfEdges = [null, null, null];
         this.outside = []; // Set of vertices that are outside (not coplanar) this face
+        this.createdAt = step; // The step at where this face was created
+        // console.log('created face at step', this.mark);
     }
 
     hasEmptyOutsideSet() {
         return this.outside.length === 0;
+    }
+
+    markAsDeleted(step) {
+        this.mark = FaceTypes.DELETED;
+        this.deletedAt = step;
     }
 
     removeVertexFromOutsideSet(remove) {

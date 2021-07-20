@@ -1,5 +1,6 @@
 import {Face, FaceTypes} from './Face.js';
 import {pointToLineDistance, signedDistanceToPlane, removeVertexFromList} from './utils.js';
+import { CONSTS } from './consts.js';
 
 const DISTANCE_TOLERANCE = 1E-5;
 
@@ -17,12 +18,12 @@ class Quickhull3D {
         this.horizon = [];
         this.newFaces = [];
         this.faces = [];
-        this.renderableMesh = new BABYLON.Mesh();
+        this.renderableMesh = new BABYLON.Mesh("convex-hull");
     }
 
     
 
-    buildInitialSimplex() {
+    buildInitialSimplex(step) {
         // For the first two points, select the two who have the furthest one-dimensional distance
          
         // Store the min vertex in each dimension
@@ -107,7 +108,7 @@ class Quickhull3D {
         const faces = [null, null, null, null];
 
         for (let i = 0; i < 4; i++) {
-            faces[i] = new Face();
+            faces[i] = new Face(step);
         }
 
         if (v4InFront) {
@@ -194,16 +195,16 @@ class Quickhull3D {
         }
     }
 
-    addPointToHull(eye) {
+    addPointToHull(eye, step) {
         console.log('adding eye point', eye, 'to hull');
         this.horizon = [];
         this.unclaimed = [];
 
         this.removePointFromFace(eye, eye.face);
-        this.calculateHorizon(eye, null, eye.face, this.horizon);
+        this.calculateHorizon(eye, null, eye.face, this.horizon, step);
         console.log('horizon', this.horizon);
         // this.newFaces = []; 
-        this.addNewFaces(this.newFaces, eye, this.horizon);
+        this.addNewFaces(this.newFaces, eye, this.horizon, step);
 
         // Can do merge pass here, leave for later
         // ...
@@ -236,7 +237,7 @@ class Quickhull3D {
         }
     }
 
-    addNewFaces(newFaces, eye, horizon) {
+    addNewFaces(newFaces, eye, horizon, step) {
         // this.newFaces = [];
         newFaces = [];
         let edgePrev = null;
@@ -244,7 +245,7 @@ class Quickhull3D {
         
         for (let hedge of horizon) {
             let horizonHe = hedge.next;
-            let hedgeSide = this.addAdjoiningFace(eye, horizonHe);
+            let hedgeSide = this.addAdjoiningFace(eye, horizonHe, step);
             console.log('new face:', hedgeSide.face, 'with points', hedgeSide.face.points);
             if (edgePrev != null) {
                 hedgeSide.next.setTwin(edgePrev);
@@ -259,8 +260,8 @@ class Quickhull3D {
         edgeBegin.next.setTwin(edgePrev);
     }
 
-    addAdjoiningFace(eye, edge) {
-        const face = new Face();
+    addAdjoiningFace(eye, edge, step) {
+        const face = new Face(step);
         face.buildFromPoints(eye, edge.tail(), edge.head());
         this.faces.push(face);
         face.halfEdges[2].setTwin(edge.twin);
@@ -282,9 +283,10 @@ class Quickhull3D {
         return removedPts;
     }
 
-    calculateHorizon(eye, edge0, face, horizon) {
+    calculateHorizon(eye, edge0, face, horizon, step) {
         this.deleteFacePoints(face, null);
-        face.mark = FaceTypes.DELETED;
+        // face.mark = FaceTypes.DELETED;
+        face.markAsDeleted(step);
         console.log('visiting face', face, 'deleted');
         let edge = null;
         if (edge0 === null) {
@@ -297,7 +299,7 @@ class Quickhull3D {
             let oppositeFace = edge.oppositeFace();
             if (oppositeFace.mark === FaceTypes.VISIBLE) {
                 if (oppositeFace.signedDistanceFromPoint(eye) > DISTANCE_TOLERANCE) {
-                    this.calculateHorizon(eye, edge.twin, oppositeFace, horizon);
+                    this.calculateHorizon(eye, edge.twin, oppositeFace, horizon, step);
                 } else {
                     horizon.push(edge);
                     console.log('adding horizon edge', edge);
@@ -330,18 +332,19 @@ class Quickhull3D {
     }
 
     build(inputPoints) {
+        let step = 0;
         console.log('got vertices', inputPoints);
         // console.log('v', inputPoints[0][this.DIM_TO_AXIS[0]]);
         this.vertexList = [...inputPoints]; 
         console.log('vertex list', this.vertexList);
-        this.buildInitialSimplex();
+        this.buildInitialSimplex(step);
+        step += 1;
 
-        let cnt = 0;
         let eye = this.nextPointToAdd();
         while (eye != null) {
-            console.log('check eye', eye);
-            this.addPointToHull(eye);
-            cnt += 1;
+            console.log('check eye', eye, 'at step', step);
+            this.addPointToHull(eye, step);
+            step += 1;
             eye = this.nextPointToAdd();
             break;
         }
@@ -352,7 +355,8 @@ class Quickhull3D {
 
     // Reference for setting a color to each face
     // https://playground.babylonjs.com/#Y8HRP3#11
-    buildRenderableMesh() {
+    buildRenderableMesh(scene) {
+        console.log('call buildRenderableMesh');
         const vertexData = new BABYLON.VertexData();
 
         // Iterates over the list of faces, adding its vertices to a list and building
@@ -362,45 +366,76 @@ class Quickhull3D {
         const vertices = []; 
         const faces = [];
         const normals = []
-        const types = [];
+        // const types = [];
+        const lifetime = [];
         for (let f of this.faces) {
-            for (v of f.points) {
+            for (let v of f.points) {
                 vertices.push(v.x, v.y, v.z);
-                const vlen = vertices.length();
-                faces.push(vlen-3, vlen-2, vlen-1);
+                const vlen = vertices.length;
+                // faces.push(vlen-3, vlen-2, vlen-1);
+                faces.push(vlen-1, vlen-2, vlen-3);
                 const normal = f.normal;
                 normals.push(normal.x, normal.y, normal.z);
             }
-            types.push(f.mark);
+            // console.log('looking at face', f);
+            // types.push(f.mark);
+            lifetime.push({createdAt: f.createdAt, deletedAt: f.deletedAt});
         }
+        // console.log('lifetimes', lifetime);
 
         // One material for each type
         const materialValues = [
-            {diffuseColor: new BABYLON.Color3(0,0,1), alpha: 0.8},
-            {diffuseColor: new BABYLON.Color3(0,1,0), alpha: 0.2},
-            {diffuseColor: new BABYLON.Color3(1,0,0), alpha: 0.2},
+            {diffuseColor: new BABYLON.Color3(0,0,1), backFaceCulling: false},
+            {diffuseColor: new BABYLON.Color3(0,1,0), backFaceCulling: false},
+            {diffuseColor: new BABYLON.Color3(1,0,0), backFaceCulling: false},
         ];
+        console.log('material Values', materialValues);
         const materials = [];
-        const multimaterial = new BABYLON.MultiMaterial("convex-hull");
+        const multimaterial = new BABYLON.MultiMaterial("convex-hull", scene);
         
-        // let i = 0;
-        // for (let mv of materialValues) {
-        //     const nm = new BABYLON.StandardMaterial("material" + i);
-        //     for (let [property, value] of Object.entries(mv)) {
-        //         nm[property] = value;
-        //     }
-        //     materials.push(nm);
-        //     multimaterial.subMaterials.push(nm);
-        // }
-        for (let i = 0; i < faces.length / 3; i++) {
-            const type = types[i];
+        const animations = new BABYLON.AnimationGroup("convex-hull-anim");
+
+        const START_OPACITY = 0.0;
+        const END_OPACITY = 0.8;
+
+        // Create materials and animations for each face
+        // for (let i = 0; i < types.length; i++) {
+        for (let i = 0; i < lifetime.length; i++) {
+            // console.log('i', i);
+            // const type = types[i];
+            // console.log('type', type);
             const nm = new BABYLON.StandardMaterial("face" + i);
-            const mv = materialValues[type];
-            for (let [property, value] of Object.entries(mv)) {
-                nm[property] = value;
-            }
+            nm.backFaceCulling = false;
+            nm.diffuseColor = new BABYLON.Color3(0,0,1);
+
+            // const mv = materialValues[type];
+            // console.log('mv', mv);
+            // for (let [property, value] of Object.entries(mv)) {
+            //     nm[property] = value;
+            // }
             materials.push(nm);
             multimaterial.subMaterials.push(nm);
+
+            const {createdAt, deletedAt} = lifetime[i];
+            const animation = new BABYLON.Animation("face" + i, "alpha", CONSTS.FPS, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+            const keys = [];
+            keys.push(
+                // {frame: 0, value: 0},
+                {frame: createdAt*CONSTS.FPS, value: START_OPACITY},
+                {frame: (createdAt+1)*CONSTS.FPS, value: END_OPACITY}
+            );
+
+            if (deletedAt) {
+                keys.push(
+                    {frame: deletedAt*CONSTS.FPS, value: END_OPACITY},
+                    {frame: (deletedAt+1)*CONSTS.FPS, value: START_OPACITY}
+                );
+            }
+
+            console.log('keys for face', i, keys);
+            animation.setKeys(keys);
+
+            animations.addTargetedAnimation(animation, nm);
         }
 
         vertexData.positions = vertices;
@@ -408,14 +443,18 @@ class Quickhull3D {
         vertexData.normals = normals;
 
         vertexData.applyToMesh(this.renderableMesh);
+        // this.renderableMesh.enableEdgesRendering();
 
         // Create a submesh for every face
         this.renderableMesh.subMeshes = [];
-        for (let i = 0; i < types.length; i++) {
-            new BABYLON.SubMesh(i, 0, vertices.length(), i*3, (i+1)*3, this.renderableMesh);
+        // for (let i = 0; i < types.length; i++) {
+        for (let i = 0; i < lifetime.length; i++) {
+            new BABYLON.SubMesh(i, 0, vertices.length, i*3, (i+1)*3, this.renderableMesh);
         }
 
         this.renderableMesh.material = multimaterial;
+
+        animations.play();
     }
 }
 

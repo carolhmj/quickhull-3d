@@ -1,3 +1,4 @@
+import { CONSTS } from './consts.js';
 import {Quickhull3D} from './Quickhull3D.js'
 
 function showWorldAxis(size, scene) {
@@ -63,9 +64,10 @@ function createScene(engine, canvas) {
 function constructHull(inputPoints) {
     const hull = new Quickhull3D();
     hull.build(inputPoints);
-
+    
     return hull;
 }
+
 
 function main() {
     let showDebug = false;
@@ -79,27 +81,27 @@ function main() {
     // Each entry is a group of points that represents a separate group on the input
     // let inputGroups = [BABYLON.MeshBuilder.CreateBox("test-box", {size: 1}, scene)];
     let inputGroups = [];
-    // let testGroup = [
-    //     new BABYLON.Vector3(1,1,1),
-    //     new BABYLON.Vector3(1,1,-1),
-    //     new BABYLON.Vector3(-1,1,-1),
-    //     new BABYLON.Vector3(-1,1,1),
-    //     new BABYLON.Vector3(1,-1,1),
-    //     new BABYLON.Vector3(1,-1,-1),
-    //     new BABYLON.Vector3(-1,-1,-1),
-    //     new BABYLON.Vector3(-1,-1,1),
-    // ];
     let testGroup = [
-        new BABYLON.Vector3(0,1,0),
-        new BABYLON.Vector3(2,0,0),
-        new BABYLON.Vector3(-1,0,0),
-        new BABYLON.Vector3(0,0,0.5),
-        new BABYLON.Vector3(0,0,1),
-        new BABYLON.Vector3(-0.5,0,0),
-        new BABYLON.Vector3(1,0,0),
-        new BABYLON.Vector3(0,0.5,0),
-        new BABYLON.Vector3(1,0,1),
+        new BABYLON.Vector3(1,1,1),
+        new BABYLON.Vector3(1,1,-1),
+        new BABYLON.Vector3(-1,1,-1),
+        new BABYLON.Vector3(-1,1,1),
+        new BABYLON.Vector3(1,-1,1),
+        new BABYLON.Vector3(1,-1,-1),
+        new BABYLON.Vector3(-1,-1,-1),
+        new BABYLON.Vector3(-1,-1,1),
     ];
+    // let testGroup = [    
+    //     new BABYLON.Vector3(0,1,0),
+    //     new BABYLON.Vector3(2,0,0),
+    //     new BABYLON.Vector3(-1,0,0),
+    //     new BABYLON.Vector3(0,0,0.5),
+    //     new BABYLON.Vector3(0,0,1),
+    //     new BABYLON.Vector3(-0.5,0,0),
+    //     new BABYLON.Vector3(1,0,0),
+    //     new BABYLON.Vector3(0,0.5,0),
+    //     new BABYLON.Vector3(1,0,1),
+    // ];
     inputGroups.push(testGroup);
     // Each entry is an animation representing the construction of a convex hull
     let outputHullConstructions = [];
@@ -129,14 +131,14 @@ function main() {
 
     const runQuickhullButton = document.getElementById("runQuickhull");
     runQuickhullButton.addEventListener("click", function() {
-        // outputHullConstructions = inputGroups.map(inputGroup => constructHull(inputGroup.getVerticesData(BABYLON.VertexBuffer.PositionKind)));
         outputHullConstructions = inputGroups.map(inputGroup => constructHull(inputGroup));
-        console.log('output hulls', outputHullConstructions);
+        outputHullConstructions.forEach(hull => hull.buildRenderableMesh(scene));
+        console.log('Hull construction done');
     });
 
     const showQuickhullButton = document.getElementById("showQuickhull");
     showQuickhullButton.addEventListener("click", function() {
-        outputHullConstructions.forEach(outputHull => outputHull.buildRenderableMesh(scene));
+        outputHullConstructions.forEach(hull => hull.constructionAnimation.start(false, CONSTS.ANIM_SPEED));
     });
 }
 

@@ -24,9 +24,9 @@ function signedArea(a, b, c) {
     const ob = b.subtract(o);
     const oc = c.subtract(o);
     // console.log('oa ob oc', oa, ob, oc);
-    console.log(oa.cross(ob));
-    console.log(oa.cross(ob).add(ob.cross(oc)));
-    console.log(oa.cross(ob).add(ob.cross(oc)).add(oc.cross(oa)));
+    // console.log(oa.cross(ob));
+    // console.log(oa.cross(ob).add(ob.cross(oc)));
+    // console.log(oa.cross(ob).add(ob.cross(oc)).add(oc.cross(oa)));
     const S = oa.cross(ob).add(ob.cross(oc)).add(oc.cross(oa)).scale(1/2);
     // console.log('S', S);
     // return b.subtract(a).cross(c.subtract(b));

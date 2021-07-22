@@ -69,7 +69,7 @@ function constructHull(inputPoints) {
 }
 
 
-function main() {
+async function main() {
     let showDebug = false;
     
     const canvas = document.getElementById("renderCanvas");
@@ -90,6 +90,7 @@ function main() {
         new BABYLON.Vector3(1,-1,-1),
         new BABYLON.Vector3(-1,-1,-1),
         new BABYLON.Vector3(-1,-1,1),
+        new BABYLON.Vector3(0,2,0)
     ];
     // let testGroup = [    
     //     new BABYLON.Vector3(0,1,0),
@@ -103,6 +104,18 @@ function main() {
     //     new BABYLON.Vector3(1,0,1),
     // ];
     inputGroups.push(testGroup);
+    
+    // let pcs = new BABYLON.PointsCloudSystem("pcs", 5, scene);
+    // let baseShape = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 1});
+    // let baseShape = BABYLON.MeshBuilder.CreateBox("box", {size: 1});
+    // pcs.addVolumePoints(baseShape, 7, new BABYLON.Color3(1,1,1));
+    // await pcs.buildMeshAsync();
+    // baseShape.dispose();
+
+    // inputGroups.push(pcs.particles.map(p => p.position));
+
+    console.log('inputGroups', inputGroups);
+
     // Each entry is an animation representing the construction of a convex hull
     let outputHullConstructions = [];
     
@@ -142,4 +155,4 @@ function main() {
     });
 }
 
-main();
+main().then(() => {});

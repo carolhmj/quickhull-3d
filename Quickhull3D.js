@@ -123,7 +123,7 @@ class Quickhull3D {
             faces[3].buildFromPoints(v4, v2, v1);
         }
 
-        console.log('initial faces', faces);
+        // console.log('initial faces', faces);
 
         // Connect faces, forming the initial polygon
         faces[0].findEdgeWithExtremities(v1, v2).setTwin(faces[3].findEdgeWithExtremities(v1, v2));
@@ -135,7 +135,7 @@ class Quickhull3D {
 
         faces[2].findEdgeWithExtremities(v1, v4).setTwin(faces[3].findEdgeWithExtremities(v1, v4));
         
-        console.log('initial polygon', faces);
+        // console.log('initial polygon', faces);
 
         this.faces.push(...faces);
 
@@ -159,25 +159,32 @@ class Quickhull3D {
             }
             
             if (maxDistFace !== null) {
+                // console.log('add point', v, 'to face', maxDistFace);
                 this.addPointToFace(v, maxDistFace);
             }
         }
 
-        console.log('claimed list', this.claimed);
+        // console.log('claimed list', this.claimed);
     }
 
     // Adds point v to the outside list of f
     addPointToFace(v, f) {
         v.face = f; // Associate this vertex as being "outside" of this face
-        if (f.hasEmptyOutsideSet()) {
-            this.claimed.push(v);
-        }
+        // if (f.hasEmptyOutsideSet()) {
+        //     console.log('add point', v, 'to claimed list');
+        //     this.claimed.push(v);
+        // }
+        
+        console.log('add point', v, 'to claimed list');
+        this.claimed.push(v);
         f.outside.push(v); 
     }
 
     nextPointToAdd() {
+        // console.log('on nextPointToAdd. claimed list is', this.claimed);
         if (this.claimed.length > 0) {
             let eyeFace = this.claimed[0].face;
+            // console.log('eyeFace', eyeFace);
             let eyeVertex = null;
 
             let maxDist = 0;
@@ -188,7 +195,7 @@ class Quickhull3D {
                     eyeVertex = vertex;
                 }
             }
-
+            // console.log('eyeVertex', eyeVertex);
             return eyeVertex;
         } else {
             return null;
@@ -203,6 +210,10 @@ class Quickhull3D {
         this.removePointFromFace(eye, eye.face);
         this.calculateHorizon(eye, null, eye.face, this.horizon, step);
         console.log('horizon', this.horizon);
+        console.log('unclaimed after horizon');
+        for (let v of this.unclaimed) {
+            console.log('v', v);
+        }
         // this.newFaces = []; 
         this.addNewFaces(this.newFaces, eye, this.horizon, step);
 
@@ -213,21 +224,24 @@ class Quickhull3D {
     }
 
     resolveUnclaimedPoints(newFaces) {
+        console.log('on resolveUnclaimedPoints, unclaimed list is', this.unclaimed);
         for (let unclaimedVert of this.unclaimed) {
+            console.log('look at unclaimed vert', unclaimedVert);
             let maxDist = DISTANCE_TOLERANCE;
             let maxFace = null;
 
             for (let f of newFaces) {
                 if (f.mark === FaceTypes.VISIBLE) {
                     const dist = f.signedDistanceFromPoint(unclaimedVert);
+                    console.log('dist to new face', f, dist);
                     if (dist > maxDist) {
                         maxDist = dist;
                         maxFace = f;
                     }
                     // Not sure why this is needed, remove it?
-                    if (maxDist > 1000*DISTANCE_TOLERANCE) {
-                        break;
-                    }
+                    // if (maxDist > 1000*DISTANCE_TOLERANCE) {
+                    //     break;
+                    // }
                 }
             }
 
@@ -244,28 +258,33 @@ class Quickhull3D {
         let edgeBegin = null;
         
         for (let hedge of horizon) {
-            let horizonHe = hedge.next;
-            let hedgeSide = this.addAdjoiningFace(eye, horizonHe, step);
+            console.log('look at hedge', hedge, 'of horizon');
+            // let horizonHe = hedge.next;
+            // console.log('its next edge is', horizonHe);
+            // let hedgeSide = this.addAdjoiningFace(eye, horizonHe, step);
+            let hedgeSide = this.addAdjoiningFace(eye, hedge, step);
             console.log('new face:', hedgeSide.face, 'with points', hedgeSide.face.points);
-            if (edgePrev != null) {
-                hedgeSide.next.setTwin(edgePrev);
-            } else {
-                edgeBegin = hedgeSide;
-            }
+            // if (edgePrev != null) {
+                // hedgeSide.next.setTwin(edgePrev);
+                // horizonHe.prev.setTwin(edgePrev);
+            // } else {
+                // edgeBegin = hedgeSide;
+            // }
 
             newFaces.push(hedgeSide.face);
-            edgePrev = hedgeSide;
+            // edgePrev = hedgeSide;
         }
 
-        edgeBegin.next.setTwin(edgePrev);
+        // edgeBegin.next.setTwin(edgePrev);
     }
 
     addAdjoiningFace(eye, edge, step) {
         const face = new Face(step);
         face.buildFromPoints(eye, edge.tail(), edge.head());
         this.faces.push(face);
-        face.halfEdges[2].setTwin(edge.twin);
-        return face.halfEdges[0];
+        // face.halfEdges[2].setTwin(edge.twin);
+        face.halfEdges[1].setTwin(edge.twin);
+        // return face.halfEdges[0];
     }
 
     removePointFromFace(v, f) {
@@ -342,12 +361,14 @@ class Quickhull3D {
 
         let eye = this.nextPointToAdd();
         while (eye != null) {
+            console.log('============ STEP', step, '===============');
             console.log('check eye', eye, 'at step', step);
             this.addPointToHull(eye, step);
             step += 1;
             eye = this.nextPointToAdd();
-            break;
+            // break;
         }
+        this.totalSteps = step;
         this.reindexFacesAndVertices();
         console.log('finished convex hull');
         console.log('list of convex hull faces', this.faces);
@@ -386,16 +407,26 @@ class Quickhull3D {
         const START_OPACITY = 0.0;
         const END_OPACITY = CONSTS.HULL_OPACITY;
 
+        const colArr = new Array(this.totalSteps);
+
         // Create materials and animations for each face
         for (let i = 0; i < lifetime.length; i++) {
+            const {createdAt, deletedAt} = lifetime[i];
+
             const nm = new BABYLON.StandardMaterial("face" + i);
             nm.backFaceCulling = false;
-            nm.diffuseColor = BABYLON.Color3.FromHexString('#0dbaaf');
+            let col = colArr[createdAt];
+            if (col === null || col === undefined) {
+                col = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+            }
+            colArr[createdAt] = col;
+            // console.log('col is', col);
+            // nm.diffuseColor = BABYLON.Color3.FromHexString('#0dbaaf');
+            nm.diffuseColor = col;
         
             materials.push(nm);
             multimaterial.subMaterials.push(nm);
 
-            const {createdAt, deletedAt} = lifetime[i];
             const animation = new BABYLON.Animation("face" + i, "alpha", CONSTS.FPS, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
             const keys = [];
             keys.push(

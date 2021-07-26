@@ -249,7 +249,7 @@ class Quickhull3D {
         for (let hedge of horizon) {
             let hedgeSide = this.addAdjoiningFace(eye, hedge, step); //edge of the side of the face (halfEdge[2])
             if (edgePrev != null) {
-                //console.log(`make face ${hedgeSide.face.id} neighbor of ${edgePrev.next.face.id}`);
+                console.log(`make face ${hedgeSide.face.id} neighbor of ${edgePrev.next.face.id}`);
                 hedgeSide.prev.setTwin(edgePrev.next);
                 //hedgeSide.next.setTwin(edgePrev);
             } else {
@@ -271,6 +271,7 @@ class Quickhull3D {
         face.buildFromPointAndHalfEdge(eye, edge);
         this.faces.push(face);
         face.halfEdges[2].setTwin(edge.twin);
+        console.log('make face', face.id, 'neighbor of', edge.twin.face.id);
         return face.halfEdges[2];  
     }
 
@@ -292,6 +293,7 @@ class Quickhull3D {
         //console.log('call calculate horizon');
         const visitingQueue = [face.halfEdges[0]];
         const visitedEdges = [];
+        const facesForDeletion = [];
         
         let cnt = 0;
         while (visitingQueue.length > 0) {
@@ -328,6 +330,8 @@ class Quickhull3D {
                     currEdge.twin.markForVisit = true;
                     visitingQueue.push(currEdge.twin);
                 }
+
+                facesForDeletion.push(currEdge.face);
             }
         }
 
@@ -340,59 +344,13 @@ class Quickhull3D {
             visitedEdge.markForVisit = false;
         }
 
-        //console.log('horizon', horizon);
-        let prev = null;
-        for (let horizonEdge of horizon) {
-            const horizonFace = horizonEdge.face;
-            if (horizonFace.mark !== FaceTypes.DELETED) {
-                this.deleteFacePoints(horizonFace, null);
-                horizonFace.markAsDeleted(step);
-                console.log('delete face', horizonFace.id);
+        for (let face of facesForDeletion) {
+            if (face.mark !== FaceTypes.DELETED) {
+                this.deleteFacePoints(face, null);
+                face.markAsDeleted(step);
+                console.log('delete face', face.id, 'which had neighbors', face.getNeighborFaceIds());
             }
-            if (prev !== null && !horizonEdge.tail().equalsWithEpsilon(prev.head())) {
-                throw new Error(`Sequential horizon edges ${prev} and ${horizonEdge} don't have matching head and tail`);
-            }
-            // Clear the visited flag on the twin edge for the
-            // next step
-            //horizonEdge.twin.visited = false;
-            //horizonEdge.twin.markForVisit = false;    
         }
-
-        // Delete faces that are part of the horizon
-        //console.log('visiting face', face, 'through edge', edge0);
-        /*if (face.mark === FaceTypes.DELETED) {
-            console.log('face deleted, marking edge as deleted');
-            return edge0.markAsDeleted();
-        }
-
-        if (face.signedDistanceFromPoint(eye) > 0) {
-            this.deleteFacePoints(face, null);
-            face.markAsDeleted(step);
-            console.log('face visible from eye, deleted');
-
-        }*/
-    
-        
-        /*let edge = null;
-        if (edge0 === null) {
-            edge0 = face.halfEdges[0];
-            edge = edge0;
-        } else {
-            edge = edge0.next;
-        }
-        do {
-            let oppositeFace = edge.oppositeFace();
-            if (oppositeFace.mark === FaceTypes.VISIBLE) {
-                if (oppositeFace.signedDistanceFromPoint(eye) > DISTANCE_TOLERANCE) {
-                    this.calculateHorizon(eye, edge.twin, oppositeFace, horizon, step);
-                } else {
-                    horizon.push(edge);
-                    console.log('adding horizon edge', edge);
-                }
-            }
-            edge = edge.next;
-        } while (edge !== edge0); // reference comparison, is that safe enough?*/
-        //let nextToVisit = [];
 
     }
 
@@ -460,7 +418,7 @@ class Quickhull3D {
 
     // Reference for setting a color to each face
     // https://playground.babylonjs.com/#Y8HRP3#11
-    buildRenderableMesh(scene) {
+    buildRenderableMesh(scene, singleColor = null) {
         console.log('call buildRenderableMesh');
         const vertexData = new BABYLON.VertexData();
 
@@ -476,7 +434,6 @@ class Quickhull3D {
             for (let v of f.points) {
                 vertices.push(v.x, v.y, v.z);
                 const vlen = vertices.length;
-                //faces.push(vlen-3, vlen-2, vlen-1);
                 faces.push(vlen-1, vlen-2, vlen-3);
                 const normal = f.normal;
                 normals.push(normal.x, normal.y, normal.z);
@@ -499,16 +456,18 @@ class Quickhull3D {
             const {createdAt, deletedAt} = lifetime[i];
 
             const nm = new BABYLON.StandardMaterial("face" + i);
-            //nm.backFaceCulling = false;
-            //nm.wireframe = true;
-            let col = colArr[createdAt];
-            if (col === null || col === undefined) {
-                col = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+            nm.backFaceCulling = false;
+
+            if (singleColor === null) {
+                let col = colArr[createdAt];
+                if (col === null || col === undefined) {
+                    col = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+                }
+                colArr[createdAt] = col;
+                nm.diffuseColor = col;
+            } else {
+                nm.diffuseColor = singleColor;
             }
-            colArr[createdAt] = col;
-            // console.log('col is', col);
-            // nm.diffuseColor = BABYLON.Color3.FromHexString('#0dbaaf');
-            nm.diffuseColor = col;
         
             materials.push(nm);
             multimaterial.subMaterials.push(nm);

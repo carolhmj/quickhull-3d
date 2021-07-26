@@ -2,13 +2,16 @@ import {Face, FaceTypes} from './Face.js';
 import {pointToLineDistance, signedDistanceToPlane, removeVertexFromList} from './utils.js';
 import { CONSTS } from './consts.js';
 
-const DISTANCE_TOLERANCE = 1E-5;
-
 class Quickhull3D {
     DIM_TO_AXIS = {
         0: 'x',
         1: 'y',
         2: 'z'
+    }
+
+    ADJ_MERGE_TYPES = {
+        LARGER_FACE: 0,
+        NON_CONVEX: 1
     }
 
     constructor() {
@@ -40,7 +43,6 @@ class Quickhull3D {
         ];
 
         for (let v of this.vertexList) {
-            // console.log('look at vector', v);
             for (let i = 0; i < 3; i++) {
                 if (v[this.DIM_TO_AXIS[i]] < minVertices[i][this.DIM_TO_AXIS[i]]) {
                     minVertices[i] = v;
@@ -61,12 +63,8 @@ class Quickhull3D {
             }
         }
 
-        // console.log('max distance', maxDistance);
-        // console.log('max axis', maxAxis);
-
         const v1 = minVertices[maxAxis];
         const v2 = maxVertices[maxAxis];
-
         console.log('v1', v1);
         console.log('v2', v2);
         
@@ -81,7 +79,6 @@ class Quickhull3D {
             }
         }
 
-        // console.log('max dist', maxDist);
         const v3 = maxVertex;
         console.log('v3', v3);
 
@@ -123,8 +120,6 @@ class Quickhull3D {
             faces[3].buildFromPoints(v4, v2, v1);
         }
 
-        // console.log('initial faces', faces);
-
         // Connect faces, forming the initial polygon
         faces[0].findEdgeWithExtremities(v1, v2).setTwin(faces[3].findEdgeWithExtremities(v1, v2));
         faces[0].findEdgeWithExtremities(v2, v3).setTwin(faces[1].findEdgeWithExtremities(v2, v3));
@@ -145,13 +140,10 @@ class Quickhull3D {
             if (v.equalsWithEpsilon(v1) || v.equalsWithEpsilon(v2) || v.equalsWithEpsilon(v3) || v.equalsWithEpsilon(v4)) {
                 continue;
             }
-            // console.log('for point', v);
-            let maxDist = DISTANCE_TOLERANCE;
+            let maxDist = CONSTS.DISTANCE_TOLERANCE;
             let maxDistFace = null;
             for (let i = 0; i < 4; i++) {
-                // const dist = Math.abs(faces[i].signedDistanceFromPoint(v));
                 const dist = faces[i].signedDistanceFromPoint(v);
-                // console.log('dist to face is', dist);
                 if (dist > maxDist) {
                     maxDist = dist;
                     maxDistFace = faces[i];
@@ -159,32 +151,21 @@ class Quickhull3D {
             }
             
             if (maxDistFace !== null) {
-                // console.log('add point', v, 'to face', maxDistFace);
                 this.addPointToFace(v, maxDistFace);
             }
         }
-
-        // console.log('claimed list', this.claimed);
     }
 
     // Adds point v to the outside list of f
     addPointToFace(v, f) {
         v.face = f; // Associate this vertex as being "outside" of this face
-        // if (f.hasEmptyOutsideSet()) {
-        //     console.log('add point', v, 'to claimed list');
-        //     this.claimed.push(v);
-        // }
-        
-        //console.log('add point', v, 'to claimed list');
         this.claimed.push(v);
         f.outside.push(v); 
     }
 
     nextPointToAdd() {
-        // console.log('on nextPointToAdd. claimed list is', this.claimed);
         if (this.claimed.length > 0) {
             let eyeFace = this.claimed[0].face;
-            // console.log('eyeFace', eyeFace);
             let eyeVertex = null;
 
             let maxDist = 0;
@@ -195,7 +176,6 @@ class Quickhull3D {
                     eyeVertex = vertex;
                 }
             }
-            // console.log('eyeVertex', eyeVertex);
             return eyeVertex;
         } else {
             return null;
@@ -203,55 +183,58 @@ class Quickhull3D {
     }
 
     addPointToHull(eye, step) {
-        console.log('adding eye point', eye, 'to hull');
         this.horizon = [];
         this.unclaimed = [];
 
-        //this.removePointFromFace(eye, eye.face);
-        //this.calculateHorizon(eye, null, eye.face, this.horizon, step);
-        console.log(' ---- calculate horizon ----');
+        this.removePointFromFace(eye, eye.face);
         this.calculateHorizon(eye, eye.face, this.horizon, step)
-        /*console.log('horizon', this.horizon);
-        console.log('unclaimed after horizon');
-        for (let v of this.unclaimed) {
-            console.log('v', v);
-        }*/
-        // this.newFaces = []; 
-        console.log(' ---- add new faces ----');
-        // this.addNewFaces(this.newFaces, eye, this.horizon, step);
         this.newFaces = this.addNewFaces(eye, this.horizon, step);
 
-        // Can do merge pass here, leave for later
-        // ...
+        /*for (let face of this.newFaces) {
+            if (face.mark = FaceTypes.VISIBLE) {
+                //while (this.doAdjacentMerge(face));    
+            }
+        }*/
 
         this.resolveUnclaimedPoints(this.newFaces);
     }
 
+    oppositeFaceDistance(halfEdge) {
+        return halfEdge.face.signedDistanceFromPoint(halfEdge.oppositeFace().centroid())
+    }
+
+    doAdjacentMerge(face, mergeType) {
+        let hedge = face.halfEdges[0];
+        let convex = true;
+
+        do {
+            let oppositeFace = hedge.oppositeFace();
+            let merge = false;
+            let dist1, dist2;
+
+            if (mergeType === this.ADJ_MERGE_TYPES.NON_CONVEX) {
+                if (this.oppositeFaceDistance(hedge) > -DISTANCE_TOLERANCE ||
+                    this.oppositeFaceDistance(hedge.twin) > -DISTANCE_TOLERANCE) {
+                        merge = true;
+                    }
+            }
+        } while (hedge != face.halfEdges[0])
+    }
+
     resolveUnclaimedPoints(newFaces) {
-        console.log('on resolveUnclaimedPoints, unclaimed list is', this.unclaimed);
-        console.log('newFaces are', newFaces);
         for (let unclaimedVert of this.unclaimed) {
-            console.log('look at unclaimed vert', unclaimedVert);
-            let maxDist = DISTANCE_TOLERANCE;
+            let maxDist = CONSTS.DISTANCE_TOLERANCE;
             let maxFace = null;
 
             for (let f of newFaces) {
-                console.log('test newface', f);
                 if (f.mark === FaceTypes.VISIBLE) {
-                    console.log('is visible');
                     const dist = f.signedDistanceFromPoint(unclaimedVert);
-                    console.log('dist to new face', f, dist);
                     if (dist > maxDist) {
                         maxDist = dist;
                         maxFace = f;
                     }
-                    // Not sure why this is needed, remove it?
-                    // if (maxDist > 1000*DISTANCE_TOLERANCE) {
-                    //     break;
-                    // }
                 }
             }
-            console.log('found face', maxFace, 'to point', unclaimedVert);
             if (maxFace !== null) {
                 this.addPointToFace(unclaimedVert, maxFace);
             }
@@ -259,69 +242,46 @@ class Quickhull3D {
     }
 
     addNewFaces(eye, horizon, step) {
-        // this.newFaces = [];
         const newFaces = [];
-        //newFaces = [];
         let edgePrev = null;
         let edgeBegin = null;
         
         for (let hedge of horizon) {
-            console.log('look at hedge', hedge, 'of horizon');
-            // let horizonHe = hedge.next;
-            // console.log('its next edge is', horizonHe);
-            // let hedgeSide = this.addAdjoiningFace(eye, horizonHe, step);
             let hedgeSide = this.addAdjoiningFace(eye, hedge, step); //edge of the side of the face (halfEdge[2])
-            console.log('new face:',     hedgeSide.face, 'with points', hedgeSide.face.points);
-            console.log('hedge side is', hedgeSide);
-            //hedgeSide
             if (edgePrev != null) {
-                //edgePrev.setTwin(hedgeSide.next); // link edge[2] of previous face with edge[0] of current face
-                console.log('set', hedgeSide.prev, 'twin as', edgePrev.next);
+                //console.log(`make face ${hedgeSide.face.id} neighbor of ${edgePrev.next.face.id}`);
                 hedgeSide.prev.setTwin(edgePrev.next);
+                //hedgeSide.next.setTwin(edgePrev);
             } else {
                 edgeBegin = hedgeSide; //edge[2]
-                console.log('set edgeBegin as', edgeBegin);
             }
-            // if (edgePrev != null) {
-                // hedgeSide.next.setTwin(edgePrev);
-                // horizonHe.prev.setTwin(edgePrev);
-            // } else {
-                // edgeBegin = hedgeSide;
-            // }
 
             newFaces.push(hedgeSide.face);
-            console.log('push face', hedgeSide.face, 'to newFaces');
             edgePrev = hedgeSide; //edge[2]
         }
-        console.log('set', edgeBegin.prev, 'twin as ', edgePrev.next);
-        //edgePrev.setTwin(edgeBegin.next); // link edge[2] of final face with edge[0] of first face, closing the loop
-        // edgeBegin.next.setTwin(edgePrev);
+
         edgeBegin.prev.setTwin(edgePrev.next);
+        //edgeBegin.next.setTwin(edgePrev);
         return newFaces;
     }
 
     addAdjoiningFace(eye, edge, step) {
         const face = new Face(step);
-        face.buildFromPoints(eye, edge.tail(), edge.head());
-        //console.log('build face', face);
+        //face.buildFromPoints(eye, edge.tail(), edge.head());
+        face.buildFromPointAndHalfEdge(eye, edge);
         this.faces.push(face);
         face.halfEdges[2].setTwin(edge.twin);
-        // face.halfEdges[1].setTwin(edge.twin);
-        return face.halfEdges[2];
-        //return face.halfEdges[1];
-        // return face.halfEdges[2];  
+        return face.halfEdges[2];  
     }
 
     removePointFromFace(v, f) {
-        console.log('removing point', v, 'from face', f);
         f.removeVertexFromOutsideSet(v);
         removeVertexFromList(v, this.claimed);
-        // console.log('f and v after removal', f, v);
     }
 
     removeAllPointsFromFace(f) {
         let removedPts = [...f.outside];
-        for (let v of f.outside) {
+        for (let v of removedPts) {
             this.removePointFromFace(v, f);
         }
         return removedPts;
@@ -329,71 +289,73 @@ class Quickhull3D {
 
     //calculateHorizon(eye, edge0, face, horizon, step) {
     calculateHorizon(eye, face, horizon, step) {
-        console.log('call calculate horizon');
+        //console.log('call calculate horizon');
         const visitingQueue = [face.halfEdges[0]];
+        const visitedEdges = [];
         
         let cnt = 0;
         while (visitingQueue.length > 0) {
             cnt++;
-            if (cnt > 10) {
-                console.error('panic break');
-                break;
+            if (cnt > 100) {
+                throw new Error("DFS seems to be taking too long, abort!");
             }
             const currEdge = visitingQueue[0];
             currEdge.markForVisit = true;
-            console.log('visiting edge', currEdge);
             visitingQueue.splice(0, 1);
+            visitedEdges.push(currEdge);
 
-            if (currEdge.visited) {
-                console.log('edge has already been visited');
-                continue;
-            }
             // determine face and twin face visibility
-            const isFaceVisible = currEdge.face.signedDistanceFromPoint(eye) > 0;
-            const isTwinFaceVisible = currEdge.twin.face.signedDistanceFromPoint(eye) > 0;
-            console.log('face visible', isFaceVisible, 'twin visible', isTwinFaceVisible);
+            const isFaceVisible = currEdge.face.signedDistanceFromPoint(eye) > CONSTS.DISTANCE_TOLERANCE;
+            const isTwinFaceVisible = currEdge.twin.face.signedDistanceFromPoint(eye) > CONSTS.DISTANCE_TOLERANCE;
             // If the face isn't visible, don't do anything
             if (isFaceVisible) {
                 // Add next edges to visiting queue
                 if (!currEdge.next.markForVisit) {
-                    console.log('add next edge', currEdge.next, 'to queue');
                     currEdge.next.markForVisit = true;
                     visitingQueue.push(currEdge.next);
                 }
                 // Add next edges to visiting queue
                 if (!currEdge.prev.markForVisit) {
-                    console.log('add prev edge', currEdge.prev, 'to queue');
                     currEdge.prev.markForVisit = true;
                     visitingQueue.push(currEdge.prev);
                 }
                 // If twin face isn't visible, then this edge is
                 // part of the horizon
                 if (!isTwinFaceVisible) {
-                    console.log('edge is part of the horizon');
                     horizon.push(currEdge);
-                } else {
+                } else if (!currEdge.twin.markForVisit) {
                     // Add twin to visiting queue
-                    console.log('add twin edge', currEdge.twin, 'to queue');
                     currEdge.twin.markForVisit = true;
                     visitingQueue.push(currEdge.twin);
                 }
             }
-
-            // Mark edge as visited
-            currEdge.visited = true;
         }
-        console.log('horizon', horizon);
+
+        if (horizon.length === 0) {
+            throw new Error(`Empty horizon on step ${step}, aborting!`);
+        }
+
+        // Clear visit flag for the next horizon pass
+        for (let visitedEdge of visitedEdges) {
+            visitedEdge.markForVisit = false;
+        }
+
+        //console.log('horizon', horizon);
+        let prev = null;
         for (let horizonEdge of horizon) {
             const horizonFace = horizonEdge.face;
-            if (face.mark !== FaceTypes.DELETED) {
+            if (horizonFace.mark !== FaceTypes.DELETED) {
                 this.deleteFacePoints(horizonFace, null);
                 horizonFace.markAsDeleted(step);
-                console.log('delete face', horizonFace);
+                console.log('delete face', horizonFace.id);
+            }
+            if (prev !== null && !horizonEdge.tail().equalsWithEpsilon(prev.head())) {
+                throw new Error(`Sequential horizon edges ${prev} and ${horizonEdge} don't have matching head and tail`);
             }
             // Clear the visited flag on the twin edge for the
             // next step
-            horizonEdge.twin.visited = false;
-            horizonEdge.twin.markForVisit = false;    
+            //horizonEdge.twin.visited = false;
+            //horizonEdge.twin.markForVisit = false;    
         }
 
         // Delete faces that are part of the horizon
@@ -435,7 +397,7 @@ class Quickhull3D {
     }
 
     deleteFacePoints(face, absorbingFace) {
-        console.log('call delete face points with face', face, 'and absorbing face', absorbingFace);
+        //console.log('call delete face points with face', face, 'and absorbing face', absorbingFace);
         let faceVerts = this.removeAllPointsFromFace(face);
         if (faceVerts != null) {
             if (absorbingFace == null) {
@@ -443,7 +405,7 @@ class Quickhull3D {
             } else {
                 for (let v of faceVerts) {
                     const dist = absorbingFace.signedDistanceFromPoint(v);
-                    if (dist > DISTANCE_TOLERANCE) {
+                    if (dist > CONSTS.DISTANCE_TOLERANCE) {
                         this.addPointToFace(v, absorbingFace);
                     } else {
                         this.unclaimed.push(v);
@@ -451,10 +413,6 @@ class Quickhull3D {
                 }
             }
         }
-    }
-
-    reindexFacesAndVertices() {
-
     }
 
     build(inputPoints) {
@@ -473,15 +431,31 @@ class Quickhull3D {
             this.addPointToHull(eye, step);
             step += 1;
             eye = this.nextPointToAdd();
-            // if (step > 4) {
-            //     break;
-            // }
-            // // break;
+
+            for (let f of this.faces) {
+                // If face is visible, print it and its neighbors for debugging:
+                if (f.mark === FaceTypes.VISIBLE) {
+                    let neighbors = [];
+                    for (let e of f.halfEdges) {
+                        if (e.twin.face.mark === FaceTypes.VISIBLE) {
+                            neighbors.push(e.twin.face.id);
+                        } else {
+                            throw new Error(`Visible face ${f.id} has an edge ${e.id} whose twin face ${e.oppositeFace().id} is not visible!`);
+                        }
+                    }
+                    console.log(`Face ${f.id} has neighbors: ${neighbors[0]}, ${neighbors[1]}, ${neighbors[2]}`);
+                }
+            }
+
+            /*if (step >= 1) {
+                break;
+            };*/
         }
         this.totalSteps = step;
-        this.reindexFacesAndVertices();
+        //this.reindexFacesAndVertices();
         console.log('finished convex hull');
         console.log('list of convex hull faces', this.faces);
+        
     }
 
     // Reference for setting a color to each face
@@ -502,7 +476,8 @@ class Quickhull3D {
             for (let v of f.points) {
                 vertices.push(v.x, v.y, v.z);
                 const vlen = vertices.length;
-                faces.push(vlen-3, vlen-2, vlen-1);
+                //faces.push(vlen-3, vlen-2, vlen-1);
+                faces.push(vlen-1, vlen-2, vlen-3);
                 const normal = f.normal;
                 normals.push(normal.x, normal.y, normal.z);
             }
@@ -524,7 +499,8 @@ class Quickhull3D {
             const {createdAt, deletedAt} = lifetime[i];
 
             const nm = new BABYLON.StandardMaterial("face" + i);
-            nm.backFaceCulling = false;
+            //nm.backFaceCulling = false;
+            //nm.wireframe = true;
             let col = colArr[createdAt];
             if (col === null || col === undefined) {
                 col = new BABYLON.Color3(Math.random(), Math.random(), Math.random());

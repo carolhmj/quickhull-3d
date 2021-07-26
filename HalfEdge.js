@@ -1,18 +1,11 @@
-const edgeTypes = {
-    VISIBLE: 1,
-    DELETED: 2
-}
+let ID_COUNTER = 0;
 
 // Class that represents a half-edge data structure
 class HalfEdge {
     constructor(vertex, face) {
         this.vertex = vertex;
         this.face = face;
-        // this.mark = VISIBLE;
-    }
-
-    markAsDeleted() {
-        this.mark = DELETED;
+        this.id = ID_COUNTER++;
     }
 
     setNext(next) {

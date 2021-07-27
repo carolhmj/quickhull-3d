@@ -9,11 +9,6 @@ class Quickhull3D {
         2: 'z'
     }
 
-    ADJ_MERGE_TYPES = {
-        LARGER_FACE: 0,
-        NON_CONVEX: 1
-    }
-
     constructor() {
         this.vertexList = []; // List of BABYLON.Vector3 objects 
         this.claimed = [] // List of BABYLON.Vector3 objects
@@ -23,8 +18,6 @@ class Quickhull3D {
         this.faces = [];
         this.renderableMesh = new BABYLON.Mesh("convex-hull");
     }
-
-    
 
     buildInitialSimplex(step) {
         // For the first two points, select the two who have the furthest one-dimensional distance
@@ -195,24 +188,6 @@ class Quickhull3D {
 
     oppositeFaceDistance(halfEdge) {
         return halfEdge.face.signedDistanceFromPoint(halfEdge.oppositeFace().centroid())
-    }
-
-    doAdjacentMerge(face, mergeType) {
-        let hedge = face.halfEdges[0];
-        let convex = true;
-
-        do {
-            let oppositeFace = hedge.oppositeFace();
-            let merge = false;
-            let dist1, dist2;
-
-            if (mergeType === this.ADJ_MERGE_TYPES.NON_CONVEX) {
-                if (this.oppositeFaceDistance(hedge) > -DISTANCE_TOLERANCE ||
-                    this.oppositeFaceDistance(hedge.twin) > -DISTANCE_TOLERANCE) {
-                        merge = true;
-                    }
-            }
-        } while (hedge != face.halfEdges[0])
     }
 
     resolveUnclaimedPoints(newFaces) {

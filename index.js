@@ -129,6 +129,32 @@ function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, single
     return struct;
 }
 
+function makeBoxGroup(npts, width, height, depth, renderPos, renderRot, singleCol) {
+    let testGroup = [];
+
+    for (let i = 0; i < npts; i++) {
+        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, -depth*0.5));
+        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, -depth*0.5));
+        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, depth*0.5));
+        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, depth*0.5));
+    }
+
+    for (let i = 0; i < npts; i++) {    
+        testGroup.push(new BABYLON.Vector3(rndOneMinusOne()*width/4, rndOneMinusOne()*height/4, rndOneMinusOne()*depth/4));
+    }
+
+    let struct = {
+        points: testGroup,
+        renderPos,
+        renderRot,
+        singleCol
+    }
+
+    pointsToPcs(testGroup, renderPos, renderRot, singleCol, struct);
+    
+    return struct;
+}
+
 function makeSphereGroup(nPts, radius, renderPos, singleCol) {
     let testGroup = [];
 
@@ -144,19 +170,6 @@ function makeSphereGroup(nPts, radius, renderPos, singleCol) {
         testGroup.push(new BABYLON.Vector3(x,y,z).scale(radius));
     }
 
-    // Add some percentage of random points inside
-    let rndInside = testGroup.length * Math.random();
-    for (let i = 0; i < rndInside; i++) {
-        const baseRad = radius * Math.random();
-        const z = rndOneMinusOne() * baseRad;
-        const azim = Math.random() * Math.PI * 2;
-
-        const x = Math.sqrt(radius*radius - z*z)*Math.cos(azim);
-        const y = Math.sqrt(radius*radius - z*z)*Math.sin(azim);
-
-        //testGroup.push(new BABYLON.Vector3(x,y,z));
-    }
-
     let struct = {
         points: testGroup,
         renderPos,
@@ -169,32 +182,117 @@ function makeSphereGroup(nPts, radius, renderPos, singleCol) {
     return struct;
 }
 
+function buildThemeGroups() {
+    const groups = [];
+    
+    const sph_sub = 80;
+    const cyl_sub = 20;
+    const mid_t_height = 7;
+    const mid_t_radius = 6;
+    const ul_t_radius = 5;
+    const ul_t_height = 2;
+    const h_rad = 6;
+    const leg_len = 5;
+    const leg_rad = 1.5;
+    const leg_x_pos = 6;
+    const arm_len = 11;
+    const arm_rad = 1;
+    const foot_w = 6;
+    const foot_h = 1;
+    const foot_d = 4;
+    const foot_pts = 3;
+    const foot_x_pos = 1;
+    const hand_w = 3;
+    const hand_h = 4;
+    const hand_d = 1;
+    const hand_pts = 3;
+    const hand_x_pos = 13;
+    const hand_y_pos = 4;
+    
+    // head
+    groups.push(makeSphereGroup(sph_sub, h_rad, new BABYLON.Vector3(0, ul_t_height + mid_t_height/2 + h_rad*0.8), new BABYLON.Color3(1,1,0))); 
+    // upper torso
+    groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,ul_t_height/2 + mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(1, 0, 0))); 
+    // middle torso
+    groups.push(makeCylinderGroup(cyl_sub, mid_t_height, mid_t_radius, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 1, 0))); 
+    // lower torso
+    groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,-ul_t_height/2 - mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 0, 1))); 
+    // left leg
+    groups.push(makeCylinderGroup(cyl_sub, leg_len, leg_rad, new BABYLON.Vector3(-leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0,1,1)));
+    // right leg
+    groups.push(makeCylinderGroup(cyl_sub, leg_len, leg_rad, new BABYLON.Vector3(leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0,1,1)));
+    // left arm
+    groups.push(makeCylinderGroup(cyl_sub, arm_len, arm_rad, new BABYLON.Vector3(-mid_t_radius*1.4, 1, 0), new BABYLON.Vector3(0,0,-Math.PI/6), new BABYLON.Color3(1,0,1)));
+    // right arm
+    groups.push(makeCylinderGroup(cyl_sub, arm_len, arm_rad, new BABYLON.Vector3(mid_t_radius*1.4, 1, 0), new BABYLON.Vector3(0,0,Math.PI/6), new BABYLON.Color3(1,0,1)));
+    // left leg
+    groups.push(makeBoxGroup(foot_pts, foot_w, foot_h, foot_d, new BABYLON.Vector3(foot_x_pos-foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0.7, 0.7, 0.2)));
+    // right leg
+    groups.push(makeBoxGroup(foot_pts, foot_w, foot_h, foot_d, new BABYLON.Vector3(foot_x_pos+foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0.7, 0.7, 0.2)));
+    // left hand
+    groups.push(makeBoxGroup(hand_pts, hand_w, hand_h, hand_d, new BABYLON.Vector3(hand_x_pos-hand_w/2, -hand_y_pos, 0), new BABYLON.Vector3(Math.PI/2,0,Math.PI/6), new BABYLON.Color3(0.2, 0.7, 0.2)));
+    // right hand
+    groups.push(makeBoxGroup(hand_pts, hand_w, hand_h, hand_d, new BABYLON.Vector3(-hand_x_pos+hand_w/2, -hand_y_pos, 0), new BABYLON.Vector3(Math.PI/2,0,-Math.PI/6), new BABYLON.Color3(0.2, 0.7, 0.2)));
+
+    return groups;
+}
+
+
+function buildRandomExampleShape(scene) {
+    const exampleMeshes = [
+        BABYLON.MeshBuilder.CreateBox("example-box", {width: 25, height: 20, depth: 15}, scene),
+        BABYLON.MeshBuilder.CreateSphere("example-sphere", {diameter: 25}, scene),
+        BABYLON.MeshBuilder.CreateCylinder("example-cylinder", {height: 25, diameter: 20}, scene),
+        BABYLON.MeshBuilder.CreateCapsule("example-capsule", {height: 25, radius: 20}, scene)
+    ];
+
+    exampleMeshes.forEach(mesh => mesh.setEnabled(false));
+
+    const selectedMesh = exampleMeshes[Math.floor(Math.random() * exampleMeshes.length)];
+    console.log('selectedMesh', selectedMesh);
+
+    const pcs = new BABYLON.PointsCloudSystem("pcs", 2);
+    pcs.addSurfacePoints(selectedMesh, 125);
+    pcs.addVolumePoints(selectedMesh, 250);
+
+    pcs.buildMeshAsync(() => {});
+
+    return [{
+        points: pcs.particles.map(p => p.position),
+        renderPos: new BABYLON.Vector3(0,0,0),
+        renderRot: new BABYLON.Vector3(0,0,0),
+        singleCol: null
+    }];
+}
+
 async function main() {
     let showDebug = false;
     
     const canvas = document.getElementById("renderCanvas");
     const engine = new BABYLON.Engine(canvas, true);
     
-    const scene = createScene(engine, canvas); //Call the createScene function
+    let scene = createScene(engine, canvas); //Call the createScene function
     showWorldAxis(1,scene);
 
     // Each entry is a group of points that represents a separate group on the input
     let groups = [];
-    
-    let cyl_sub = 20;
-    let mid_t_height = 6;
-    let ul_t_radius = 5;
-    let ul_t_height = 3;
-    let h_rad = 6;
-    groups.push(makeSphereGroup(75, h_rad, new BABYLON.Vector3(0, ul_t_height/2 + mid_t_height + h_rad), new BABYLON.Color3(1,1,0)));
-    //groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,ul_t_height/2 + mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(1, 0, 0))); // upper torso
-    //groups.push(makeCylinderGroup(cyl_sub, mid_t_height, mid_t_height, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 1, 0))); // middle torso
-    //groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,-ul_t_height/2 - mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 0, 1))); // middle torso
 
-    console.log('inputGroups', groups);
+    const randomExampleButton = document.getElementById("rndExample");
+    randomExampleButton.addEventListener("click", function() {
+        scene.dispose();
+        scene = createScene(engine, canvas);
+        groups = buildRandomExampleShape(scene);
+    });
 
-    // Each entry is an animation representing the construction of a convex hull
-    let outputHullConstructions = [];
+    const themeButton = document.getElementById("theme");
+    themeButton.addEventListener("click", function() {
+        scene.dispose();
+        scene = createScene(engine, canvas);
+        groups = buildThemeGroups();
+    });
+
+    // groups = buildThemeGroups();
+    groups = buildRandomExampleShape(scene);
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -216,41 +314,15 @@ async function main() {
         }
     });
 
-    // This mesh will be used to display the hull being constructed
-    // const hull = new BABYLON.Mesh("convex-hull");
-
     const runQuickhullButton = document.getElementById("runQuickhull");
     runQuickhullButton.addEventListener("click", function() {
-        // outputHullConstructions = inputGroups.map(({points}) => constructHull(points));
         groups.forEach(group => group.hull = constructHull(group.points));
-        // outputHullConstructions.forEach(hull => hull.buildRenderableMesh(scene));
         groups.forEach(group => {
             group.hull.buildRenderableMesh(scene, group.singleCol);
             group.hull.renderableMesh.position = group.renderPos;
             group.hull.renderableMesh.rotation = group.renderRot;
         });
         console.log('Hull construction done');
-        /*canvas.addEventListener("click", () => {
-            const pickInfo = scene.pick(scene.pointerX, scene.pointerY);
-            if (pickInfo.hit) {
-                const faceId = pickInfo.faceId;
-                if (faceId >= 0) {
-                    const outhull = outputHullConstructions[0];
-                    const face = outhull.faces[faceId];
-                    const neighbors = [];
-                    for (let e of face.halfEdges) {
-                        if (e.twin.face.mark === FaceTypes.VISIBLE) {
-                            neighbors.push(e.twin.face.id);
-                        } else {
-                            console.error(`Face ${f.id} has an edge ${e.id} whose twin face ${e.oppositeFace().id} is not visible!`);
-                        }
-                    }
-                    console.log(`Face ${face.id} has neighbors: ${neighbors[0]}, ${neighbors[1]}, ${neighbors[2]}`);
-                } else {
-                    console.error("No faceID?");
-                }
-            }
-        });*/
     });
 
     const showQuickhullButton = document.getElementById("showQuickhull");

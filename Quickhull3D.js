@@ -220,9 +220,7 @@ class Quickhull3D {
         for (let hedge of horizon) {
             let hedgeSide = this.addAdjoiningFace(eye, hedge, step); //edge of the side of the face (halfEdge[2])
             if (edgePrev != null) {
-                // console.log(`make face ${hedgeSide.face.id} neighbor of ${edgePrev.next.face.id}`);
                 hedgeSide.prev.setTwin(edgePrev.next);
-                //hedgeSide.next.setTwin(edgePrev);
             } else {
                 edgeBegin = hedgeSide; //edge[2]
             }
@@ -232,17 +230,14 @@ class Quickhull3D {
         }
 
         edgeBegin.prev.setTwin(edgePrev.next);
-        //edgeBegin.next.setTwin(edgePrev);
         return newFaces;
     }
 
     addAdjoiningFace(eye, edge, step) {
         const face = new Face(step);
-        //face.buildFromPoints(eye, edge.tail(), edge.head());
         face.buildFromPointAndHalfEdge(eye, edge);
         this.faces.push(face);
         face.halfEdges[2].setTwin(edge.twin);
-        // console.log('make face', face.id, 'neighbor of', edge.twin.face.id);
         return face.halfEdges[2];  
     }
 
@@ -262,7 +257,6 @@ class Quickhull3D {
     calculateHorizon(eye, edge0, face, horizon, step) {
         this.deleteFacePoints(face, null);
         face.markAsDeleted(step);
-        // console.log('visiting face', face.id);
         let edge = null;
         if (edge0 === null) {
             edge0 = face.halfEdges[0];
@@ -272,13 +266,11 @@ class Quickhull3D {
         }
         do {
             const oppFace = edge.oppositeFace();
-            // console.log('look at oppface', oppFace.id, oppFace);
             if (oppFace.mark === FaceTypes.VISIBLE) {
                 if (oppFace.signedDistanceFromPoint(eye) > CONSTS.DISTANCE_TOLERANCE) {
                     this.calculateHorizon(eye, edge.twin, oppFace, horizon, step);
                 } else {
                     horizon.push(edge);
-                    // console.log('adding horizon edge', edge.id);
                 }
             }
             edge = edge.next;
@@ -286,7 +278,6 @@ class Quickhull3D {
     }
 
     deleteFacePoints(face, absorbingFace) {
-        //console.log('call delete face points with face', face, 'and absorbing face', absorbingFace);
         let faceVerts = this.removeAllPointsFromFace(face);
         if (faceVerts != null) {
             if (absorbingFace == null) {
@@ -306,18 +297,12 @@ class Quickhull3D {
 
     build(inputPoints) {
         let step = 0;
-        // console.log('got vertices', inputPoints);
-        // console.log('vertices with y coord as 0', inputPoints.filter(v => Math.abs(v.y) < 0.1));
-        // console.log('v', inputPoints[0][this.DIM_TO_AXIS[0]]);
         this.vertexList = [...inputPoints]; 
-        //console.log('vertex list', this.vertexList);
         this.buildInitialSimplex(step);
         step += 1;
 
         let eye = this.nextPointToAdd();
         while (eye != null) {
-            // console.log('============ STEP', step, '===============');
-            // console.log('check eye', eye, 'at step', step);
             this.addPointToHull(eye, step);
             step += 1;
             eye = this.nextPointToAdd();
@@ -333,19 +318,10 @@ class Quickhull3D {
                             throw new Error(`Visible face ${f.id} has an edge ${e.id} whose twin face ${e.oppositeFace().id} is not visible!`);
                         }
                     }
-                    // console.log(`Face ${f.id} has neighbors: ${neighbors[0]}, ${neighbors[1]}, ${neighbors[2]}`);
                 }
             }
-
-            /*if (step >= 8) {
-                break;
-            };*/
         }
         this.totalSteps = step;
-        // console.log('finished convex hull');
-        // console.log('list of convex hull faces', this.faces);
-        // console.log('face with vertex on 0', this.faces.filter(f => f.points.some(p => Math.abs(p.y) < 0.1)));
-        
     }
 
     // Reference for setting a color to each face

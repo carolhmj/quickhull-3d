@@ -274,8 +274,7 @@ function buildThemeGroups() {
             new BABYLON.Color3(1,1,0), 
             -h_rad*0.8, 
             head_connection)); 
-    // console.log('head connection', head_connection);
-
+    
     const left_arm_torso_connection = [];
     const left_arm_hand_connection = [];
     // left arm
@@ -304,7 +303,7 @@ function buildThemeGroups() {
             [],
             right_arm_hand_connection,
             right_arm_torso_connection));
-    // console.log('right arm group', groups[groups.length-1].points.filter(p => Math.abs(p.y) < 0.001));
+    
     const upper_torso_bottom = [];
     // upper torso
     groups.push(
@@ -410,6 +409,7 @@ function buildThemeGroups() {
             new BABYLON.Vector3(Math.PI/4,-Math.PI/6,Math.PI/2), 
             new BABYLON.Color3(0.2, 0.7, 0.2),
             left_arm_hand_connection));
+            
     // right hand
     groups.push(
         makeBoxGroup(

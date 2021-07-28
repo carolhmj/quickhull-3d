@@ -22,25 +22,27 @@ class Quickhull3D {
     buildInitialSimplex(step) {
         // For the first two points, select the two who have the furthest one-dimensional distance
          
-        // Store the min vertex in each dimension
+        // Store the vertices with min and max value in each dimension
         const minVertices = [
-            new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-            new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
-            new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
+            new BABYLON.Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER),
+            new BABYLON.Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER),
+            new BABYLON.Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
         ];
 
         const maxVertices = [
-            new BABYLON.Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE),
-            new BABYLON.Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE),
-            new BABYLON.Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE),
+            new BABYLON.Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER),
+            new BABYLON.Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER),
+            new BABYLON.Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER),
         ];
 
         for (let v of this.vertexList) {
+            // console.log('v 0', v[this.DIM_TO_AXIS[0]])
             for (let i = 0; i < 3; i++) {
                 if (v[this.DIM_TO_AXIS[i]] < minVertices[i][this.DIM_TO_AXIS[i]]) {
                     minVertices[i] = v;
                 }
                 if (v[this.DIM_TO_AXIS[i]] > maxVertices[i][this.DIM_TO_AXIS[i]]) {
+                    // console.log('bigger than maxvertices? on dim', i);
                     maxVertices[i] = v;
                 }
             }    
@@ -305,6 +307,7 @@ class Quickhull3D {
     build(inputPoints) {
         let step = 0;
         // console.log('got vertices', inputPoints);
+        // console.log('vertices with y coord as 0', inputPoints.filter(v => Math.abs(v.y) < 0.1));
         // console.log('v', inputPoints[0][this.DIM_TO_AXIS[0]]);
         this.vertexList = [...inputPoints]; 
         //console.log('vertex list', this.vertexList);
@@ -341,6 +344,7 @@ class Quickhull3D {
         this.totalSteps = step;
         // console.log('finished convex hull');
         // console.log('list of convex hull faces', this.faces);
+        // console.log('face with vertex on 0', this.faces.filter(f => f.points.some(p => Math.abs(p.y) < 0.1)));
         
     }
 

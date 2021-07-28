@@ -2,6 +2,8 @@ import { CONSTS } from './consts.js';
 import {Quickhull3D} from './Quickhull3D.js'
 import {FaceTypes} from './Face.js';
 
+let ID_COUNTER = 0;
+
 function showWorldAxis(size, scene) {
     var makeTextPlane = function(text, color, size) {
         var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", 50, scene, true);
@@ -95,13 +97,29 @@ function pointsToPcs(testGroup, renderPos, renderRot, singleCol, struct) {
     });
 }
 
-function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, singleCol) {
+function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, singleCol, extraVertices, topGroup, bottomGroup) {
     let testGroup = [];
-
+    // console.log('cylinder group renderpos', renderPos);
     let tot = nSubdiv;
+    let quat = BABYLON.Quaternion.FromEulerAngles(renderRot.x, renderRot.y, renderRot.z);
+    // console.log('quat', quat);
+    // console.log('top group', topGroup);
+    // console.log('bot group', bottomGroup);
     for (let i = 1; i < tot+1; i++) {
-        testGroup.push( new BABYLON.Vector3(Math.sin(2*Math.PI*(i/tot))*radius, height/2, Math.cos(2*Math.PI*(i/tot))*radius) );
-        testGroup.push( new BABYLON.Vector3(Math.sin(2*Math.PI*(i/tot))*radius, -height/2, Math.cos(2*Math.PI*(i/tot))*radius) );
+        let vtop = new BABYLON.Vector3(Math.sin(2*Math.PI*(i/tot))*radius, height/2, Math.cos(2*Math.PI*(i/tot))*radius);
+        vtop.id = ID_COUNTER++;
+        // console.log('vtop before rotate', vtop);
+        vtop.rotateByQuaternionToRef(quat, vtop);
+        // console.log('vtop after rotate', vtop);
+        vtop = vtop.add(renderPos);
+        testGroup.push( vtop );
+        topGroup.push(vtop);
+        let vbot = new BABYLON.Vector3(Math.sin(2*Math.PI*(i/tot))*radius, -height/2, Math.cos(2*Math.PI*(i/tot))*radius);
+        vbot.id = ID_COUNTER++;
+        vbot.rotateByQuaternionToRef(quat, vbot);
+        vbot = vbot.add(renderPos);
+        testGroup.push( vbot );
+        bottomGroup.push(vbot);
     }
 
     // Add some percentage of random points inside
@@ -114,50 +132,80 @@ function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, single
         let y = rndOneMinusOne() * height/2; 
         let z = Math.cos(a)*r;
 
-        testGroup.push(new BABYLON.Vector3(x,y,z));
+        let vi = new BABYLON.Vector3(x,y,z);
+        vi.id = ID_COUNTER++;
+        vi.rotateByQuaternionToRef(quat, vi);
+        vi = vi.add(renderPos);
+
+        if (vi.equalsWithEpsilon(new BABYLON.Vector3(0,0,0))) {
+            console.log('got rnd close to 0');
+        }
+
+        testGroup.push(vi);
     }
+
+    testGroup.push(...extraVertices);
+
+    // console.log('cylinder test group', testGroup);
 
     let struct = {
         points: testGroup,
-        renderPos,
-        renderRot,
+        renderPos: new BABYLON.Vector3(0,0,0),
+        renderRot: new BABYLON.Vector3(0,0,0),
         singleCol
     }
 
-    pointsToPcs(testGroup, renderPos, renderRot, singleCol, struct);
+    pointsToPcs(testGroup, struct.renderPos, struct.renderRot, singleCol, struct);
 
     return struct;
 }
 
-function makeBoxGroup(npts, width, height, depth, renderPos, renderRot, singleCol) {
+function addAndRotRef(v, add, rot) {
+    v.rotateByQuaternionToRef(rot, v).addToRef(add, v);
+}
+
+function makeBoxGroup(npts, width, height, depth, renderPos, renderRot, singleCol, extraVertices) {
     let testGroup = [];
 
+    let quat = BABYLON.Quaternion.FromEulerAngles(renderRot.x, renderRot.y, renderRot.z);
     for (let i = 0; i < npts; i++) {
-        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, -depth*0.5));
-        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, -depth*0.5));
-        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, depth*0.5));
-        testGroup.push(new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, depth*0.5));
+        let a = new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, -depth*0.5);
+        addAndRotRef(a, renderPos, quat);
+        testGroup.push(a);
+        let b = new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, -depth*0.5);
+        addAndRotRef(b, renderPos, quat);
+        testGroup.push(b);
+        let c = new BABYLON.Vector3(width*i/npts-width*0.5, height*0.5, depth*0.5)
+        addAndRotRef(c, renderPos, quat);
+        testGroup.push(c);
+        let d = new BABYLON.Vector3(width*i/npts-width*0.5, -height*0.5, depth*0.5);
+        addAndRotRef(d, renderPos, quat);
+        testGroup.push(d);
     }
 
-    for (let i = 0; i < npts; i++) {    
-        testGroup.push(new BABYLON.Vector3(rndOneMinusOne()*width/4, rndOneMinusOne()*height/4, rndOneMinusOne()*depth/4));
+    for (let i = 0; i < npts; i++) {
+        let a = new BABYLON.Vector3(rndOneMinusOne()*width/4, rndOneMinusOne()*height/4, rndOneMinusOne()*depth/4);
+        addAndRotRef(a, renderPos, quat);    
+        testGroup.push(a);
     }
+
+    testGroup.push(...extraVertices);
 
     let struct = {
         points: testGroup,
-        renderPos,
-        renderRot,
+        renderPos: new BABYLON.Vector3(0,0,0),
+        renderRot: new BABYLON.Vector3(0,0,0),
         singleCol
     }
 
-    pointsToPcs(testGroup, renderPos, renderRot, singleCol, struct);
+    pointsToPcs(testGroup, struct.renderPos, struct.renderRot, singleCol, struct);
     
     return struct;
 }
 
-function makeSphereGroup(nPts, radius, renderPos, singleCol) {
+function makeSphereGroup(nPts, radius, renderPos, singleCol, verticesUnderHeight, verticesUnderHeightGroup) {
     let testGroup = [];
-
+    // console.log('vertices under height', verticesUnderHeight);
     const phi = Math.PI * (3 - Math.sqrt(5));
     for (let i = 0; i < nPts; i++) {
         const y = 1 - (i / (nPts-1)) * 2;
@@ -167,17 +215,24 @@ function makeSphereGroup(nPts, radius, renderPos, singleCol) {
         const x = Math.cos(theta)*inRadius;
         const z = Math.sin(theta)*inRadius;
         
-        testGroup.push(new BABYLON.Vector3(x,y,z).scale(radius));
+        const v = new BABYLON.Vector3(x,y,z).scale(radius).add(renderPos);
+        v.id = ID_COUNTER++;
+
+        testGroup.push(v);
+        // console.log('y radius of', y*radius);
+        if (y*radius < verticesUnderHeight) {
+            verticesUnderHeightGroup.push(v);
+        }
     }
 
     let struct = {
         points: testGroup,
-        renderPos,
+        renderPos: new BABYLON.Vector3(0,0,0),
         renderRot: new BABYLON.Vector3(0,0,0),
         singleCol
     }
 
-    pointsToPcs(testGroup, renderPos, struct.renderRot, singleCol, struct);
+    pointsToPcs(testGroup, struct.renderPos, struct.renderRot, singleCol, struct);
 
     return struct;
 }
@@ -209,31 +264,164 @@ function buildThemeGroups() {
     const hand_x_pos = 13;
     const hand_y_pos = 4;
     
+    const head_connection = [];
     // head
-    groups.push(makeSphereGroup(sph_sub, h_rad, new BABYLON.Vector3(0, ul_t_height + mid_t_height/2 + h_rad*0.8), new BABYLON.Color3(1,1,0))); 
-    // upper torso
-    groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,ul_t_height/2 + mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(1, 0, 0))); 
-    // middle torso
-    groups.push(makeCylinderGroup(cyl_sub, mid_t_height, mid_t_radius, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 1, 0))); 
-    // lower torso
-    groups.push(makeCylinderGroup(cyl_sub, ul_t_height, ul_t_radius, new BABYLON.Vector3(0,-ul_t_height/2 - mid_t_height/2,0), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0, 0, 1))); 
-    // left leg
-    groups.push(makeCylinderGroup(cyl_sub, leg_len, leg_rad, new BABYLON.Vector3(-leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0,1,1)));
-    // right leg
-    groups.push(makeCylinderGroup(cyl_sub, leg_len, leg_rad, new BABYLON.Vector3(leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0,1,1)));
-    // left arm
-    groups.push(makeCylinderGroup(cyl_sub, arm_len, arm_rad, new BABYLON.Vector3(-mid_t_radius*1.4, 1, 0), new BABYLON.Vector3(0,0,-Math.PI/6), new BABYLON.Color3(1,0,1)));
-    // right arm
-    groups.push(makeCylinderGroup(cyl_sub, arm_len, arm_rad, new BABYLON.Vector3(mid_t_radius*1.4, 1, 0), new BABYLON.Vector3(0,0,Math.PI/6), new BABYLON.Color3(1,0,1)));
-    // left leg
-    groups.push(makeBoxGroup(foot_pts, foot_w, foot_h, foot_d, new BABYLON.Vector3(foot_x_pos-foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0.7, 0.7, 0.2)));
-    // right leg
-    groups.push(makeBoxGroup(foot_pts, foot_w, foot_h, foot_d, new BABYLON.Vector3(foot_x_pos+foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), new BABYLON.Vector3(0,0,0), new BABYLON.Color3(0.7, 0.7, 0.2)));
-    // left hand
-    groups.push(makeBoxGroup(hand_pts, hand_w, hand_h, hand_d, new BABYLON.Vector3(hand_x_pos-hand_w/2, -hand_y_pos, 0), new BABYLON.Vector3(Math.PI/2,0,Math.PI/6), new BABYLON.Color3(0.2, 0.7, 0.2)));
-    // right hand
-    groups.push(makeBoxGroup(hand_pts, hand_w, hand_h, hand_d, new BABYLON.Vector3(-hand_x_pos+hand_w/2, -hand_y_pos, 0), new BABYLON.Vector3(Math.PI/2,0,-Math.PI/6), new BABYLON.Color3(0.2, 0.7, 0.2)));
+    groups.push(
+        makeSphereGroup(
+            sph_sub, 
+            h_rad, 
+            new BABYLON.Vector3(0, ul_t_height + mid_t_height/2 + h_rad, 0), 
+            new BABYLON.Color3(1,1,0), 
+            -h_rad*0.8, 
+            head_connection)); 
+    // console.log('head connection', head_connection);
 
+    const left_arm_torso_connection = [];
+    const left_arm_hand_connection = [];
+    // left arm
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            arm_len, 
+            arm_rad, 
+            new BABYLON.Vector3(mid_t_radius*1.8, ul_t_height + mid_t_height/2, 0), 
+            new BABYLON.Vector3(0,0,-Math.PI/2), 
+            new BABYLON.Color3(1,0,1),
+            [],
+            left_arm_hand_connection,
+            left_arm_torso_connection));
+    // right arm
+    const right_arm_torso_connection = [];
+    const right_arm_hand_connection = [];
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            arm_len, 
+            arm_rad, 
+            new BABYLON.Vector3(-mid_t_radius*1.8, ul_t_height + mid_t_height/2, 0), 
+            new BABYLON.Vector3(0,0,Math.PI/2), 
+            new BABYLON.Color3(1,0,1),
+            [],
+            right_arm_hand_connection,
+            right_arm_torso_connection));
+    // console.log('right arm group', groups[groups.length-1].points.filter(p => Math.abs(p.y) < 0.001));
+    const upper_torso_bottom = [];
+    // upper torso
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            ul_t_height, 
+            ul_t_radius, 
+            new BABYLON.Vector3(0,ul_t_height/2 + mid_t_height/2,0), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(1, 0, 0),
+            [...head_connection, ...left_arm_torso_connection, ...right_arm_torso_connection],
+            [],
+            upper_torso_bottom)); 
+    
+    
+    const left_leg_upper = [];
+    const left_leg_lower = [];
+    // left leg
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            leg_len, 
+            leg_rad, 
+            new BABYLON.Vector3(-leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0,1,1),
+            [],
+            left_leg_upper,
+            left_leg_lower));
+    const right_leg_upper = [];
+    const right_leg_lower = [];
+    // right leg
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            leg_len, 
+            leg_rad, 
+            new BABYLON.Vector3(leg_x_pos/2, -mid_t_height/2-ul_t_height-leg_len/2), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0,1,1),
+            [],
+            right_leg_upper,
+            right_leg_lower));
+    
+    // left leg base
+    groups.push(
+        makeBoxGroup(
+            foot_pts, 
+            foot_w, 
+            foot_h, 
+            foot_d, 
+            new BABYLON.Vector3(foot_x_pos-foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0.7, 0.7, 0.2),
+            left_leg_lower));
+    // right leg base
+    groups.push(
+        makeBoxGroup(
+            foot_pts, 
+            foot_w, 
+            foot_h, 
+            foot_d, 
+            new BABYLON.Vector3(foot_x_pos+foot_w/2, -mid_t_height/2-ul_t_height-leg_len-foot_h/2, 0.5), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0.7, 0.7, 0.2),
+            right_leg_lower));
+
+    const lower_torso_top = [];
+    // lower torso
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            ul_t_height, 
+            ul_t_radius, 
+            new BABYLON.Vector3(0,-ul_t_height/2 - mid_t_height/2,0), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0, 0, 1),
+            [...left_leg_upper, ...right_leg_upper],
+            lower_torso_top,
+            [])); 
+  
+    // middle torso
+    groups.push(
+        makeCylinderGroup(
+            cyl_sub, 
+            mid_t_height, 
+            mid_t_radius, 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Vector3(0,0,0), 
+            new BABYLON.Color3(0, 1, 0),
+            [...upper_torso_bottom, ...lower_torso_top],
+            [],
+            [])); 
+    
+    // left hand
+    groups.push(
+        makeBoxGroup(
+            hand_pts, 
+            hand_w, 
+            hand_h, 
+            hand_d, 
+            new BABYLON.Vector3(arm_len*1.7, ul_t_height + mid_t_height/2, 1.5 ), 
+            new BABYLON.Vector3(Math.PI/4,-Math.PI/6,Math.PI/2), 
+            new BABYLON.Color3(0.2, 0.7, 0.2),
+            left_arm_hand_connection));
+    // right hand
+    groups.push(
+        makeBoxGroup(
+            hand_pts, 
+            hand_w, 
+            hand_h, 
+            hand_d, 
+            new BABYLON.Vector3(-arm_len*1.7, ul_t_height + mid_t_height/2, 1.5 ), 
+            new BABYLON.Vector3(Math.PI/4,Math.PI/6,-Math.PI/2), 
+            new BABYLON.Color3(0.2, 0.7, 0.2),
+            right_arm_hand_connection));
+    
     return groups;
 }
 
@@ -291,8 +479,8 @@ async function main() {
         groups = buildThemeGroups();
     });
 
-    // groups = buildThemeGroups();
-    groups = buildRandomExampleShape(scene);
+    groups = buildThemeGroups();
+    // groups = buildRandomExampleShape(scene);
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {

@@ -36,13 +36,11 @@ class Quickhull3D {
         ];
 
         for (let v of this.vertexList) {
-            // console.log('v 0', v[this.DIM_TO_AXIS[0]])
             for (let i = 0; i < 3; i++) {
                 if (v[this.DIM_TO_AXIS[i]] < minVertices[i][this.DIM_TO_AXIS[i]]) {
                     minVertices[i] = v;
                 }
                 if (v[this.DIM_TO_AXIS[i]] > maxVertices[i][this.DIM_TO_AXIS[i]]) {
-                    // console.log('bigger than maxvertices? on dim', i);
                     maxVertices[i] = v;
                 }
             }    

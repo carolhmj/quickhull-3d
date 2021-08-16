@@ -1,6 +1,7 @@
 import { CONSTS } from './consts.js';
 import {Quickhull3D} from './Quickhull3D.js'
 import {FaceTypes} from './Face.js';
+import { Delaunay3D } from './Delaunay3D.js';
 
 let ID_COUNTER = 0;
 
@@ -78,6 +79,11 @@ function constructHull(inputPoints) {
     hull.build(inputPoints);
     
     return hull;
+}
+
+function constructDelaunay(inputFaces, scene) {
+    const delaunay = new Delaunay3D();
+    delaunay.build(inputFaces, scene);
 }
 
 function rndOneMinusOne() {
@@ -440,8 +446,8 @@ function buildRandomExampleShape(scene) {
     console.log('selectedMesh', selectedMesh);
 
     const pcs = new BABYLON.PointsCloudSystem("pcs", 2);
-    pcs.addSurfacePoints(selectedMesh, 125);
-    pcs.addVolumePoints(selectedMesh, 250);
+    pcs.addSurfacePoints(selectedMesh, 10);
+    pcs.addVolumePoints(selectedMesh, 20);
 
     pcs.buildMeshAsync(() => {});
 
@@ -479,8 +485,19 @@ async function main() {
         groups = buildThemeGroups();
     });
 
-    groups = buildThemeGroups();
+    // groups = buildThemeGroups();
     // groups = buildRandomExampleShape(scene);
+    groups = [];
+    groups.push(makeCylinderGroup(
+        3, 
+        20, 
+        10, 
+        new BABYLON.Vector3(0,0,0), 
+        new BABYLON.Vector3(0,0,0), 
+        new BABYLON.Color3(0,1,1),
+        [],
+        [],
+        []));
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -516,6 +533,13 @@ async function main() {
     const showQuickhullButton = document.getElementById("showQuickhull");
     showQuickhullButton.addEventListener("click", function() {
         groups.forEach(({hull}) => hull.constructionAnimation.start(false, CONSTS.ANIM_SPEED));
+    });
+
+    const runDelaunayButton = document.getElementById("runDelaunay");
+    runDelaunayButton.addEventListener("click", function() {
+        groups.forEach(group => {
+            group.delaunay = constructDelaunay(group.hull.faces, scene);
+        });
     });
 }
 

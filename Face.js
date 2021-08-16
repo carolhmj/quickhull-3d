@@ -11,7 +11,6 @@ const FaceTypes = {
 
 class Face {
 
-
     constructor(step) {
         this.normal = BABYLON.Vector3();
         this.centroid = BABYLON.Vector3();
@@ -22,6 +21,21 @@ class Face {
         this.createdAt = step; // The step at where this face was created
         // console.log('created face at step', this.mark);
         this.id = ID_COUNTER++;
+    }
+
+    // Check if this face is equal to another one based purely on the
+    // ids of its points, notwithstanding direction
+    equalByPoints(other) {
+        const ownPtsIds = this.points.map(pt => pt.id).sort();
+        const otherPtsIds = other.points.map(pt => pt.id).sort();
+
+        for (let i = 0; i < 3; i++) {
+            if (ownPtsIds[i] !== otherPtsIds[i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     hasEmptyOutsideSet() {

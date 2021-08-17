@@ -1,6 +1,6 @@
 // This class receives a list of convex hull faces and returns the tetrahedralization
 
-import { FaceTypes } from "./Face.js";
+import { Face, FaceTypes } from "./Face.js";
 
 
 export class Delaunay3D {
@@ -10,37 +10,21 @@ export class Delaunay3D {
         2: 'z'
     }
 
-    // check if normal of face p1, p2, p3 is on the opposite direction to p
-    checkNormalOpposite(p1, p2, p3, p) {
-        // triangle centroid
-        const c = p1.add(p2).add(p3).scale(0.333);
-        // console.log('c', c);
-
-        // line from centroid to point p
-        const cp = p.subtract(c);
-        // console.log('cp', cp);
-        cp.normalizeToRef(new BABYLON.Vector3());
-
-        // triangle normal
-        const p1p2 = p2.subtract(p1);
-        const p3p1 = p3.subtract(p1);
-
-        const n = BABYLON.Vector3.Cross(p1p2, p3p1);
-        n.normalizeToRef(new BABYLON.Vector3());
-
-        const angle = BABYLON.Vector3.Dot(cp, n);
-        return angle > 0;
-    }
+    
 
     getInputPoints(inputFaces) {
-        const uniqueIds = new Set();
+        // const uniqueIds = new Set();
         const uniquePts = [];
 
         for (let face of inputFaces) {
+            // console.log('look at face', face);
             if (face.mark === FaceTypes.VISIBLE) {
                 for (let pt of face.points) {
-                    if (!uniqueIds.has(pt.id)) {
-                        uniqueIds.add(pt.id);
+                    // if (!uniqueIds.has(pt.id)) {
+                    //     uniqueIds.add(pt.id);
+                    //     uniquePts.push(pt);
+                    // }
+                    if (!uniquePts.some( upt => upt.equalsWithEpsilon(pt))) {
                         uniquePts.push(pt);
                     }
                 }
@@ -135,11 +119,58 @@ export class Delaunay3D {
         }
     }
 
-    build(inputFaces, scene) {
-        // Receive input faces from Quickhull algorithm. Extract the points from
-        // these faces
+    getInitialFace(vertexList) {
+        // Look for the points that are closest together
+
+    }
+
+    build(inputFaces) {
+        // Receive input faces from Quickhull algorithm. Extract the visible faces only
+        this.convexHull = inputFaces.filter(face => face.mark === FaceTypes.VISIBLE);
+        // Save all the vertices that have to be processed    
         this.vertexList = this.getInputPoints(inputFaces);
         // Build initial shape (simplex) containing all points to be inserted
-        this.buildInitialShape(scene);
+        // this.buildInitialShape(scene);
+
+        const frontier = [];
+        // Add any face from the convex hull to the face queue
+        frontier.push(this.convexHull[0]);
+        // const initialFace = this.getInitialFace(this.vertexList);
+
+        const exploredFaces = [];
+
+        // Main loop
+        while (frontier.length > 0) {
+            const faceToProcess = frontier[0];
+            frontier.splice(0,1);
+            console.log('face to process is', faceToProcess);
+
+            const visibleVtxs = [];
+            for (let vertex of this.vertexList) {
+                const isVisible = faceToProcess.isVisible(vertex);
+                console.log('pt', vertex, 'is visible from face', faceToProcess, '?', isVisible);
+
+                if (isVisible) {
+                    visibleVtxs.push(vertex);
+                }
+            }
+            console.log('visible vertices are', visibleVtxs);
+
+            // Classify points
+            if (visibleVtxs.length > 0) {
+
+            }
+
+            // Update frontier 
+            
+            exploredFaces.push(faceToProcess);
+            // if the face with opposite orientation of the processed face hasn't been explored, add it to the frontier
+            const oppFace = new Face();
+            oppFace.buildFromPoints(faceToProcess.points[2], faceToProcess.points[1], faceToProcess.points[0]);
+            if (!exploredFaces.some(exploredFace => exploredFace.equalsWithOrientation(oppFace))) {
+                frontier.push(oppFace);
+            }
+
+        }   
     }
 }

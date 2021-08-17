@@ -23,18 +23,16 @@ class Face {
         this.id = ID_COUNTER++;
     }
 
-    // Check if this face is equal to another one based purely on the
-    // ids of its points, notwithstanding direction
-    equalByPoints(other) {
-        const ownPtsIds = this.points.map(pt => pt.id).sort();
-        const otherPtsIds = other.points.map(pt => pt.id).sort();
-
+    // Check if the face is the same as another face, with its points on the same orientation
+    equalsWithOrientation(other) {
         for (let i = 0; i < 3; i++) {
-            if (ownPtsIds[i] !== otherPtsIds[i]) {
+            const ownPt = this.points[i];
+            const otherPt = other.points[i];
+
+            if (!ownPt.equalsWithEpsilon(otherPt)) {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -153,6 +151,34 @@ class Face {
 
     signedDistanceFromPoint(p) {
         return signedDistanceToPlane(this.points[0], this.points[1], this.points[2], p);
+    }
+
+    // check if point p is visible from face
+    isVisible(p) {
+        console.log('check if', p, 'is visible');
+        const p1 = this.points[0];
+        const p2 = this.points[1];
+        const p3 = this.points[2];
+        // triangle centroid
+        const c = p1.add(p2).add(p3).scale(0.333);
+        console.log('c', c);
+
+        // line from centroid to point p
+        const cp = p.subtract(c);
+        cp.normalizeToRef(cp);
+        console.log('cp', cp);
+
+        // triangle normal
+        const p1p2 = p2.subtract(p1);
+        const p3p1 = p3.subtract(p1);
+
+        const n = BABYLON.Vector3.Cross(p1p2, p3p1);
+        n.normalizeToRef(n);
+        console.log('n', n);
+
+        const angle = BABYLON.Vector3.Dot(cp, n);
+        console.log('angle cos', angle);
+        return angle > 0;
     }
 }
 

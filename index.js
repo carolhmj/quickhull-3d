@@ -488,16 +488,24 @@ async function main() {
     // groups = buildThemeGroups();
     // groups = buildRandomExampleShape(scene);
     groups = [];
-    groups.push(makeCylinderGroup(
-        3, 
-        20, 
-        10, 
-        new BABYLON.Vector3(0,0,0), 
-        new BABYLON.Vector3(0,0,0), 
-        new BABYLON.Color3(0,1,1),
-        [],
-        [],
-        []));
+    // groups.push(makeCylinderGroup(
+    //     3, 
+    //     20, 
+    //     10, 
+    //     new BABYLON.Vector3(0,0,0), 
+    //     new BABYLON.Vector3(0,0,0), 
+    //     new BABYLON.Color3(0,1,1),
+    //     [],
+    //     [],
+    //     []));
+    // groups.push(makeBoxGroup(2, 10, 10, 10, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), null, []));
+    groups.push({
+        points: [new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,10), new BABYLON.Vector3(0,10,0), new BABYLON.Vector3(0,10,10), 
+                 new BABYLON.Vector3(10,0,0), new BABYLON.Vector3(10,0,10), new BABYLON.Vector3(10,10,0), new BABYLON.Vector3(10,10,10)],
+        renderPos: new BABYLON.Vector3(0,0,0),
+        renderRot: new BABYLON.Vector3(0,0,0),
+        singleCol: null
+    });
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {

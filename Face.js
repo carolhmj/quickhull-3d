@@ -180,6 +180,65 @@ class Face {
         console.log('angle cos', angle);
         return angle > 0;
     }
+
+    GetInterval(triangle, axis) {
+        let result = {};
+    
+        result.min = Dot(axis, triangle.points[0]);
+        result.max = result.min;
+        for (let i = 1; i < 3; i++) {
+            let value = Dot(axis, triangle.points[i]);
+            result.min = Math.min(result.min, value);
+            result.max = Math.max(result.max, value);
+        }
+    
+        return result;
+    }
+
+    OverlapOnAxis(t1, t2, axis) {
+        let a = GetInterval(t1, axis);
+        let b = GetInterval(t2, axis);
+        return ((b.min <= a.max) && (a.min <= b.max));
+    }
+
+    // Checks if this face intersects other face
+    intersects(other) {
+        const t1_f0 = this.halfEdges[0].vector();
+        const t1_f1 = this.halfEdges[1].vector();
+        const t1_f2 = this.halfEdges[2].vector();
+
+        const t2_f0 = other.halfEdges[0].vector();
+        const t2_f1 = other.halfEdges[1].vector();
+        const t2_f2 = other.halfEdges[2].vector();
+
+        const axesToTest = [
+            // Triangle 1, Normal
+            BABYLON.Vector3.Cross(t1_f0, t1_f1),
+            // Triangle 2, Normal
+            BABYLON.Vector3.Cross(t2_f0, t2_f1),
+
+            // Cross Product of edges
+            BABYLON.Vector3.Cross(t2_f0, t1_f0),
+            BABYLON.Vector3.Cross(t2_f0, t1_f1),
+            BABYLON.Vector3.Cross(t2_f0, t1_f2),
+
+            BABYLON.Vector3.Cross(t2_f1, t1_f0),
+            BABYLON.Vector3.Cross(t2_f1, t1_f1),
+            BABYLON.Vector3.Cross(t2_f1, t1_f2),
+
+            BABYLON.Vector3.Cross(t2_f2, t1_f0),
+            BABYLON.Vector3.Cross(t2_f2, t1_f1),
+            BABYLON.Vector3.Cross(t2_f2, t1_f2),
+        ];
+
+        for (let i = 0; i < 11; i++) {
+            if (!OverlapOnAxis(t1, t2, axesToTest[i])) {
+                return false; // Seperating axis found
+            }
+        }
+    
+        return true; // Seperating axis not found
+    }
 }
 
 export {Face, FaceTypes};

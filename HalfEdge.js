@@ -29,6 +29,11 @@ class HalfEdge {
         return this.prev?.vertex;
     }
 
+    // Returns the vector from tail to head
+    vector() {
+        return this.head().subtract(this.tail());
+    }
+
     oppositeFace() {
         return this.twin?.face;
     }

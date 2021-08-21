@@ -1,7 +1,7 @@
 // This class receives a list of convex hull faces and returns the tetrahedralization
 
 import { Face, FaceTypes } from "./Face.js";
-
+import Simplex from "./Simplex.js";
 
 export class Delaunay3D {
     DIM_TO_AXIS = {
@@ -124,6 +124,22 @@ export class Delaunay3D {
 
     }
 
+    // Compute the solid angle of the tetrahedron with origin O and face ABC
+    // formula from: https://en.wikipedia.org/wiki/Solid_angle
+    tetrSolidAngle(O, A, B, C) {
+        av = A.subtract(O);
+        bv = B.subtract(O);
+        cv = C.subtract(O);
+
+        const tripleProd = BABYLON.Vector3.Dot(av, BABYLON.Vector3.Cross(bv, cv));
+        const num1 = av.length() + bv.length() + cv.length();
+        const num2 = BABYLON.Vector3.Dot(av, bv) * cv.length();
+        const num3 = BABYLON.Vector3.Dot(av, cv) * bv.length();
+        const num4 = BABYLON.Vector3.Dot(bv, cv) * av.length();
+
+        return tripleProd / (num1 + num2 + num3 + num4);
+    }
+
     build(inputFaces) {
         // Receive input faces from Quickhull algorithm. Extract the visible faces only
         this.convexHull = inputFaces.filter(face => face.mark === FaceTypes.VISIBLE);
@@ -138,6 +154,9 @@ export class Delaunay3D {
         // const initialFace = this.getInitialFace(this.vertexList);
 
         const exploredFaces = [];
+        const explorableVertices = [...this.vertexList];
+
+        const constructedSimplexes = [];
 
         // Main loop
         while (frontier.length > 0) {
@@ -145,31 +164,43 @@ export class Delaunay3D {
             frontier.splice(0,1);
             console.log('face to process is', faceToProcess);
 
-            const visibleVtxs = [];
-            for (let vertex of this.vertexList) {
-                const isVisible = faceToProcess.isVisible(vertex);
-                console.log('pt', vertex, 'is visible from face', faceToProcess, '?', isVisible);
+            // Classify points by highest solid angle
+            // if (explorableVertices.length > 0) {
+            explorableVertices.sort((a, b) => 
+            this.tetrSolidAngle(a, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]) 
+            - this.tetrSolidAngle(b, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]));
+            // }
+            let i = explorableVertices.length-1;
+            let newPolyhedra;
+            while (i > 0) {
+                // Check if the point can form a valid tetrahedron
+                const possiblePoly = new Simplex();
+                possiblePoly.buildFromPoints([possibleVtx, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]]);
 
-                if (isVisible) {
-                    visibleVtxs.push(vertex);
+                let intersects = false;
+                for (let simplex in constructedSimplexes) {
+                    if (simplex.intersects(possiblePoly)) {
+                        intersects = true;
+                        break;
+                    }
                 }
+
+                if (!intersects) {
+                    newPolyhedra = possiblePoly;
+                    break;
+                }
+
+                i--;
             }
-            console.log('visible vertices are', visibleVtxs);
 
-            // Classify points
-            if (visibleVtxs.length > 0) {
-
+            if (newPolyhedra) {
+                
             }
 
             // Update frontier 
             
             exploredFaces.push(faceToProcess);
-            // if the face with opposite orientation of the processed face hasn't been explored, add it to the frontier
-            const oppFace = new Face();
-            oppFace.buildFromPoints(faceToProcess.points[2], faceToProcess.points[1], faceToProcess.points[0]);
-            if (!exploredFaces.some(exploredFace => exploredFace.equalsWithOrientation(oppFace))) {
-                frontier.push(oppFace);
-            }
+            
 
         }   
     }

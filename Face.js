@@ -36,6 +36,19 @@ class Face {
         return true;
     }
 
+    // Check if the face is the same as another face, with its points on the opposite orientation 
+    equalsOppositeOrientation(other) {
+        for (let i = 0; i < 3; i++) {
+            const ownPt = this.points[i];
+            const otherPt = other.points[2-i];
+
+            if (!ownPt.equalsWithEpsilon(otherPt)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     hasEmptyOutsideSet() {
         return this.outside.length === 0;
     }
@@ -184,10 +197,10 @@ class Face {
     GetInterval(triangle, axis) {
         let result = {};
     
-        result.min = Dot(axis, triangle.points[0]);
+        result.min = BABYLON.Vector3.Dot(axis, triangle.points[0]);
         result.max = result.min;
         for (let i = 1; i < 3; i++) {
-            let value = Dot(axis, triangle.points[i]);
+            let value = BABYLON.Vector3.Dot(axis, triangle.points[i]);
             result.min = Math.min(result.min, value);
             result.max = Math.max(result.max, value);
         }
@@ -196,8 +209,8 @@ class Face {
     }
 
     OverlapOnAxis(t1, t2, axis) {
-        let a = GetInterval(t1, axis);
-        let b = GetInterval(t2, axis);
+        let a = this.GetInterval(t1, axis);
+        let b = this.GetInterval(t2, axis);
         return ((b.min <= a.max) && (a.min <= b.max));
     }
 
@@ -232,7 +245,7 @@ class Face {
         ];
 
         for (let i = 0; i < 11; i++) {
-            if (!OverlapOnAxis(t1, t2, axesToTest[i])) {
+            if (!this.OverlapOnAxis(this, other, axesToTest[i])) {
                 return false; // Seperating axis found
             }
         }

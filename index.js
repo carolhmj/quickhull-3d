@@ -1,6 +1,6 @@
 import { CONSTS } from './consts.js';
 import {Quickhull3D} from './Quickhull3D.js'
-import {FaceTypes} from './Face.js';
+import {Face, FaceTypes} from './Face.js';
 import { Delaunay3D } from './Delaunay3D.js';
 
 let ID_COUNTER = 0;
@@ -516,6 +516,15 @@ async function main() {
     window.addEventListener("resize", function () {
         engine.resize();
     });
+
+    const a = new BABYLON.Vector3(0,0,0);
+    const b = new BABYLON.Vector3(1,0,0);
+    const c = new BABYLON.Vector3(0,1,0);
+    const t1 = new Face();
+    t1.buildFromPoints(a,b,c);
+    const t2 = new Face();
+    t2.buildFromPoints(c,b,a);
+    console.log('t1 intersects t2?', t1.intersects(t2));
 
     const debugButton = document.getElementById("debugButton");
     debugButton.addEventListener("click", function() {

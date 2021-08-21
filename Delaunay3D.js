@@ -127,9 +127,9 @@ export class Delaunay3D {
     // Compute the solid angle of the tetrahedron with origin O and face ABC
     // formula from: https://en.wikipedia.org/wiki/Solid_angle
     tetrSolidAngle(O, A, B, C) {
-        av = A.subtract(O);
-        bv = B.subtract(O);
-        cv = C.subtract(O);
+        const av = A.subtract(O);
+        const bv = B.subtract(O);
+        const cv = C.subtract(O);
 
         const tripleProd = BABYLON.Vector3.Dot(av, BABYLON.Vector3.Cross(bv, cv));
         const num1 = av.length() + bv.length() + cv.length();
@@ -148,13 +148,13 @@ export class Delaunay3D {
         // Build initial shape (simplex) containing all points to be inserted
         // this.buildInitialShape(scene);
 
-        const frontier = [];
+        let frontier = [];
         // Add any face from the convex hull to the face queue
         frontier.push(this.convexHull[0]);
         // const initialFace = this.getInitialFace(this.vertexList);
 
         const exploredFaces = [];
-        const explorableVertices = [...this.vertexList];
+        // const explorableVertices = [...this.vertexList];
 
         const constructedSimplexes = [];
 
@@ -166,6 +166,7 @@ export class Delaunay3D {
 
             // Classify points by highest solid angle
             // if (explorableVertices.length > 0) {
+            let explorableVertices = this.vertexList.filter(v => !v.equalsWithEpsilon(faceToProcess.points[0]) && !v.equalsWithEpsilon(faceToProcess.points[1]) && !v.equalsWithEpsilon(faceToProcess.points[2]));
             explorableVertices.sort((a, b) => 
             this.tetrSolidAngle(a, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]) 
             - this.tetrSolidAngle(b, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]));
@@ -173,12 +174,13 @@ export class Delaunay3D {
             let i = explorableVertices.length-1;
             let newPolyhedra;
             while (i > 0) {
+                const possibleVtx = explorableVertices[i];
                 // Check if the point can form a valid tetrahedron
                 const possiblePoly = new Simplex();
                 possiblePoly.buildFromPoints([possibleVtx, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]]);
 
                 let intersects = false;
-                for (let simplex in constructedSimplexes) {
+                for (let simplex of constructedSimplexes) {
                     if (simplex.intersects(possiblePoly)) {
                         intersects = true;
                         break;
@@ -194,7 +196,25 @@ export class Delaunay3D {
             }
 
             if (newPolyhedra) {
+                constructedSimplexes.push(newPolyhedra);
+                // If any of the new polyhedra's faces with the opposite direction is also in the frontier, then
+                // remove those faces from the frontier and don't add them to
+                const removeFromFrontier = new Set();
+                const notAddToFrontier = new Set();
+                for (let frontierFace of frontier) {
+                    for (let newFace of newPolyhedra.faces) {
+                        const isOpposite = frontierFace.equalsOppositeOrientation(newFace);
+                        if (isOpposite) {
+                            removeFromFrontier.push(frontierFace);
+                            notAddToFrontier.add(newFace);
+                        }
+                    }
+                }
                 
+                frontier = frontier.filter(frontierFace => !removeFromFrontier.has(frontierFace));
+                const facesToAdd = newPolyhedra.faces.filter(newFace => !notAddToFrontier.has(newFace));
+
+                frontier.push(...facesToAdd);
             }
 
             // Update frontier 

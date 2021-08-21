@@ -1,9 +1,31 @@
-import { Face } from "./Face";
+import { Face } from "./Face.js";
 
 // A simplex is a tetrahedron containing a list of faces
 export default class Simplex {
     constructor() {
 
+    }
+
+    // check if normal of face p1, p2, p3 is on the opposite direction to p
+    checkNormalOpposite(p1, p2, p3, p) {
+        // triangle centroid
+        const c = p1.add(p2).add(p3).scale(0.333);
+        console.log('c', c);
+
+        // line from centroid to point p
+        const cp = p.subtract(c);
+        console.log('cp', cp);
+        cp.normalizeToRef(cp);
+
+        // triangle normal
+        const p1p2 = p2.subtract(p1);
+        const p3p1 = p3.subtract(p1);
+
+        const n = BABYLON.Vector3.Cross(p1p2, p3p1);
+        n.normalizeToRef(n);
+
+        const angle = BABYLON.Vector3.Dot(cp, n);
+        return angle < 0;
     }
 
     buildFromFaces(facesList) {
@@ -14,7 +36,7 @@ export default class Simplex {
     }
 
     buildFromPoints(tetr) {
-        if (pts.length !== 4) {
+        if (tetr.length !== 4) {
             throw new Error("Creating a simplex with number of points != 4!");
         }
 
@@ -69,12 +91,47 @@ export default class Simplex {
         this.faces = faces;
     }
 
+    getPoints() {
+        return this.points.map(f => f.points).flat();
+    }
+
+    getEdges() {
+        return this.faces.map(f => f.edges).flat();
+    }
+
+    // intersects(other) {
+    //     for (let thisf of this.faces) {
+    //         if (other.faces.some(otherf => thisf.intersects(otherf))) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
+    getInterval(points, axis) {
+        let res = {min: Number.MAX_SAFE_INTEGER, max: Number.MIN_SAFE_INTEGER};
+
+        for (let point of points) {
+            const proj = BABYLON.Vector3.Dot(point, axis);
+            res.min = Math.min(proj, res.min);
+            res.max = Math.max(proj, res.max);
+        }
+
+        return res;
+    }
+
     intersects(other) {
-        for (let thisf of this.faces) {
-            if (other.faces.some(otherf => thisf.intersects(otherf))) {
-                return true;
+        for (let thisEdge of this.getEdges()) {
+            for (let otherEdge of other.getEdges()) {
+                const axis = BABYLON.Cross(thisEdge.vector(), otherEdge.vector());
+
+                const thisInt = this.getInterval(this.getPoints(), axis);
+                const otherInt = this.getInterval(this.getPoints(), axis);
+
+                const int1 = thisInt.max < otherInt.min;
+                const int2 = otherInt.max < thisInt.min; 
+                if (!int1 && !int2) return false; // found a separating axis
             }
         }
-        return false;
+        return true; // didn't find a separating axis 
     }
 }

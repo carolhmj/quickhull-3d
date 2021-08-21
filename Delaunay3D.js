@@ -178,10 +178,10 @@ export class Delaunay3D {
                 // Check if the point can form a valid tetrahedron
                 const possiblePoly = new Simplex();
                 possiblePoly.buildFromPoints([possibleVtx, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]]);
-
+                
                 let intersects = false;
                 for (let simplex of constructedSimplexes) {
-                    if (simplex.intersects(possiblePoly)) {
+                    if (simplex.samePoints(possiblePoly) || simplex.intersects(possiblePoly)) {
                         intersects = true;
                         break;
                     }

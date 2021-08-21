@@ -2,6 +2,7 @@ import { CONSTS } from './consts.js';
 import {Quickhull3D} from './Quickhull3D.js'
 import {Face, FaceTypes} from './Face.js';
 import { Delaunay3D } from './Delaunay3D.js';
+import Simplex from './Simplex.js';
 
 let ID_COUNTER = 0;
 
@@ -517,14 +518,20 @@ async function main() {
         engine.resize();
     });
 
-    const a = new BABYLON.Vector3(0,0,0);
-    const b = new BABYLON.Vector3(1,0,0);
-    const c = new BABYLON.Vector3(0,1,0);
-    const t1 = new Face();
-    t1.buildFromPoints(a,b,c);
-    const t2 = new Face();
-    t2.buildFromPoints(c,b,a);
-    console.log('t1 intersects t2?', t1.intersects(t2));
+    const a = new BABYLON.Vector3(0,10,10);
+    const b = new BABYLON.Vector3(0,0,10);
+    const c = new BABYLON.Vector3(10,0,10);
+    const d = new BABYLON.Vector3(0,0,0);
+    const e = new BABYLON.Vector3(10,10,10);
+    // const t1 = new Face();
+    // t1.buildFromPoints(a,b,c);
+    // const t2 = new Face();
+    // t2.buildFromPoints(c,b,a);
+    // const t1 = new Simplex();
+    // t1.buildFromPoints([a, b, c, d]);
+    // const t2 = new Simplex();
+    // t2.buildFromPoints([a, c, d, e]);
+    // console.log('t1 intersects t2?', t1.intersects(t2));
 
     const debugButton = document.getElementById("debugButton");
     debugButton.addEventListener("click", function() {

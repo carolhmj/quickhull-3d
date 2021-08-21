@@ -92,11 +92,11 @@ export default class Simplex {
     }
 
     getPoints() {
-        return this.points.map(f => f.points).flat();
+        return this.faces.map(f => f.points).flat();
     }
 
     getEdges() {
-        return this.faces.map(f => f.edges).flat();
+        return this.faces.map(f => f.halfEdges).flat();
     }
 
     // intersects(other) {
@@ -122,7 +122,8 @@ export default class Simplex {
     intersects(other) {
         for (let thisEdge of this.getEdges()) {
             for (let otherEdge of other.getEdges()) {
-                const axis = BABYLON.Cross(thisEdge.vector(), otherEdge.vector());
+                const axis = BABYLON.Vector3.Cross(thisEdge.vector(), otherEdge.vector());
+                axis.normalizeToRef(axis);
 
                 const thisInt = this.getInterval(this.getPoints(), axis);
                 const otherInt = this.getInterval(this.getPoints(), axis);
@@ -133,5 +134,20 @@ export default class Simplex {
             }
         }
         return true; // didn't find a separating axis 
+    }
+
+    samePoints(other) {
+        for (let thisPoint of this.getPoints()) {
+            let foundPoint = false;
+            for (let otherPoint of other.getPoints()) {
+                if (thisPoint.equalsWithEpsilon(otherPoint)) {
+                    foundPoint = true;
+                }
+            }
+            if (!foundPoint) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -2,6 +2,7 @@
 
 import { Face, FaceTypes } from "./Face.js";
 import Simplex from "./Simplex.js";
+import { CONSTS } from "./consts.js";
 
 export class Delaunay3D {
     DIM_TO_AXIS = {
@@ -10,7 +11,9 @@ export class Delaunay3D {
         2: 'z'
     }
 
-    
+    constructor() {
+        this.renderableMesh = new BABYLON.Mesh("delaunay");
+    }    
 
     getInputPoints(inputFaces) {
         // const uniqueIds = new Set();
@@ -34,96 +37,6 @@ export class Delaunay3D {
         return uniquePts;
     }
 
-    // Reference playground: https://playground.babylonjs.com/#XAGD4K#6
-    buildInitialShape(scene) {
-        // The initial shape is a bounding box with two tetrahedra containing all
-        // the points
-        // Store the vertices with min and max value in each dimension
-        const minVertices = new BABYLON.Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-        const maxVertices = new BABYLON.Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
-
-        console.log('vertex list', this.vertexList);
-        // for (let v of this.vertexList) {
-        //     for (let i = 0; i < 3; i++) {
-        //         if (v[this.DIM_TO_AXIS[i]] < minVertices[i][this.DIM_TO_AXIS[i]]) {
-        //             minVertices[i] = v;
-        //         }
-        //         if (v[this.DIM_TO_AXIS[i]] > maxVertices[i][this.DIM_TO_AXIS[i]]) {
-        //             maxVertices[i] = v;
-        //         }
-        //         minVertex.min
-        //     }    
-        // }
-        minVertices.minimizeInPlace(this.vertexList);
-        maxVertices.maximizeInPlace(this.vertexList);
-
-        // bounding box from min and max pts
-        const pts = [
-            new BABYLON.Vector3(minVertices.x, maxVertices.y, maxVertices.z),
-            new BABYLON.Vector3(maxVertices.x, maxVertices.y, maxVertices.z),
-            new BABYLON.Vector3(minVertices.x, minVertices.y, maxVertices.z),
-            new BABYLON.Vector3(maxVertices.x, minVertices.y, maxVertices.z),
-            new BABYLON.Vector3(minVertices.x, maxVertices.y, minVertices.z),
-            new BABYLON.Vector3(maxVertices.x, maxVertices.y, minVertices.z),
-            new BABYLON.Vector3(minVertices.x, minVertices.y, minVertices.z),
-            new BABYLON.Vector3(maxVertices.x, minVertices.y, minVertices.z),
-        ];
-
-        console.log('pts', pts);
-
-        const tetrs = [];
-
-        tetrs.push([pts[0], pts[1], pts[3], pts[5]]);
-        tetrs.push([pts[0], pts[2], pts[3], pts[6]]);
-        tetrs.push([pts[3], pts[5], pts[6], pts[7]]);
-        tetrs.push([pts[0], pts[3], pts[5], pts[6]]);
-        tetrs.push([pts[0], pts[4], pts[5], pts[6]]);
-
-        let i = 0;
-        for (let tetr of tetrs) {
-            const centr = tetr[0].add(tetr[1]).add(tetr[2]).add(tetr[3]).scale(0.25);
-            // console.log('centr', centr);
-            // Create tetrahedron faces
-            const tp = tetr.map(pt => [pt.x, pt.y, pt.z]).flat();
-            // console.log('pts', tp);
-            const idxs = [
-                0, 1, 2,
-                1, 2, 3,
-                0, 2, 3,
-                0, 1, 3
-            ];
-
-            for (let i = 0; i < idxs.length; i += 3) {
-                const isOpposite = this.checkNormalOpposite(
-                    tetr[idxs[i]], 
-                    tetr[idxs[i+1]], 
-                    tetr[idxs[i+2]], 
-                    centr);
-                if (!isOpposite) {
-                    // reverse order of indices
-                    let aux = idxs[i];
-                    idxs[i] = idxs[i+2];
-                    idxs[i+2] = aux;
-                }
-            }
-
-            const vertexData = new BABYLON.VertexData();
-            vertexData.positions = tp;
-            vertexData.indices = idxs;
-
-            const name = "tetr" + i++;
-            const mesh = new BABYLON.Mesh(name, scene);
-            vertexData.applyToMesh(mesh);
-            mesh.material = new BABYLON.StandardMaterial(name, scene);
-            mesh.material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random())
-        }
-    }
-
-    getInitialFace(vertexList) {
-        // Look for the points that are closest together
-
-    }
-
     // Compute the solid angle of the tetrahedron with origin O and face ABC
     // formula from: https://en.wikipedia.org/wiki/Solid_angle
     tetrSolidAngle(O, A, B, C) {
@@ -138,6 +51,114 @@ export class Delaunay3D {
         const num4 = BABYLON.Vector3.Dot(bv, cv) * av.length();
 
         return tripleProd / (num1 + num2 + num3 + num4);
+    }
+
+    buildRenderableMesh(scene, singleColor) {
+        const vertexData = new BABYLON.VertexData();
+
+        // Iterates over the list of faces, adding its vertices to a list and building
+        // the indices. Besides, it selects the color of the face based on if the face
+        // is deleted or not
+        // Probably easier to render if vertices aren't unique
+        const vertices = []; 
+        const faces = [];
+        const normals = []
+        const lifetime = [];
+        let vertexCount = 0;
+        for (let s of this.constructedSimplexes) {
+            for (let f of s.faces) {
+                for (let v of f.points) {
+                    vertices.push(v.x, v.y, v.z);
+                    // const normal = f.normal;
+                    // normals.push(normal.x, normal.y, normal.z);
+                    vertexCount++;
+                }
+                const vlen = vertices.length;
+                faces.push(vertexCount-1, vertexCount-2, vertexCount-3);
+                lifetime.push({createdAt: s.createdAt, deletedAt: s.deletedAt});
+            }
+        }
+        console.log('lifetime', lifetime);
+
+        const materials = [];
+        const multimaterial = new BABYLON.MultiMaterial("delaunay", scene);
+        
+        const animations = new BABYLON.AnimationGroup("delaunay-anim");
+
+        const START_OPACITY = 0.0;
+        const END_OPACITY = CONSTS.HULL_OPACITY;
+
+        const colArr = new Array(this.totalSteps);
+        console.log('colarr at start', colArr);
+
+        // Create materials and animations for each face
+        for (let i = 0; i < lifetime.length; i++) {
+            const {createdAt, deletedAt} = lifetime[i];
+
+            const nm = new BABYLON.StandardMaterial("delaunay-face" + i);
+            nm.backFaceCulling = true;
+            // nm.wireframe = true;
+
+            if (!singleColor) {
+                let col = colArr[createdAt];
+                if (!col) {
+                    col = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+                }
+                colArr[createdAt] = col;
+                nm.diffuseColor = col;
+            } else {
+                nm.diffuseColor = singleColor;
+            }
+        
+            materials.push(nm);
+            multimaterial.subMaterials.push(nm);
+
+            const animation = new BABYLON.Animation("delaunay-face" + i, "alpha", CONSTS.FPS, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+            const keys = [];
+            keys.push(
+                {frame: 0, value: 0},
+                {frame: createdAt*CONSTS.FPS, value: START_OPACITY},
+                {frame: (createdAt+1)*CONSTS.FPS, value: END_OPACITY}
+            );
+
+            if (deletedAt) {
+                keys.push(
+                    {frame: deletedAt*CONSTS.FPS, value: END_OPACITY},
+                    {frame: (deletedAt+1)*CONSTS.FPS, value: START_OPACITY}
+                );
+            }
+
+            console.log('keys for face', i, keys);
+            animation.setKeys(keys);
+
+            animations.addTargetedAnimation(animation, nm);
+        }
+        console.log('colArr', colArr);
+
+        animations.normalize();
+
+        console.log('vertices', vertices);
+        vertexData.positions = vertices;
+        console.log('indices', faces);
+        vertexData.indices = faces;
+        // console.log('normals', normals);
+        // vertexData.normals = normals;
+
+        vertexData.applyToMesh(this.renderableMesh);
+
+        // Create a submesh for every face
+        this.renderableMesh.subMeshes = [];
+        for (let i = 0; i < lifetime.length; i++) {
+            console.log('i', i);
+            console.log('create submesh to face with indices', faces[i*3], faces[i*3+1], faces[i*3+2]);
+            new BABYLON.SubMesh(i, 0, vertices.length, i*3, 3,  this.renderableMesh);
+        }
+
+        this.renderableMesh.material = multimaterial;
+
+        this.constructionAnimation = animations;
+
+        console.log('finished building renderable mesh');
     }
 
     build(inputFaces) {
@@ -157,12 +178,11 @@ export class Delaunay3D {
         // const explorableVertices = [...this.vertexList];
 
         const constructedSimplexes = [];
-
+        let step = 0;
         // Main loop
         while (frontier.length > 0) {
             const faceToProcess = frontier[0];
-            frontier.splice(0,1);
-            console.log('face to process is', faceToProcess);
+            // frontier.splice(0,1);
 
             // Classify points by highest solid angle
             // if (explorableVertices.length > 0) {
@@ -173,15 +193,18 @@ export class Delaunay3D {
             // }
             let i = explorableVertices.length-1;
             let newPolyhedra;
-            while (i > 0) {
+            while (i >= 0) {
                 const possibleVtx = explorableVertices[i];
+    
                 // Check if the point can form a valid tetrahedron
-                const possiblePoly = new Simplex();
+                const possiblePoly = new Simplex(step);
                 possiblePoly.buildFromPoints([possibleVtx, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]]);
                 
                 let intersects = false;
                 for (let simplex of constructedSimplexes) {
-                    if (simplex.samePoints(possiblePoly) || simplex.intersects(possiblePoly)) {
+                    const samePoints = simplex.samePoints(possiblePoly);
+                    let simplIntersects = simplex.intersects(possiblePoly);
+                    if ( samePoints || simplIntersects ) {
                         intersects = true;
                         break;
                     }
@@ -196,6 +219,7 @@ export class Delaunay3D {
             }
 
             if (newPolyhedra) {
+                step++;
                 constructedSimplexes.push(newPolyhedra);
                 // If any of the new polyhedra's faces with the opposite direction is also in the frontier, then
                 // remove those faces from the frontier and don't add them to
@@ -203,9 +227,9 @@ export class Delaunay3D {
                 const notAddToFrontier = new Set();
                 for (let frontierFace of frontier) {
                     for (let newFace of newPolyhedra.faces) {
-                        const isOpposite = frontierFace.equalsOppositeOrientation(newFace);
+                        const isOpposite = frontierFace.equalsSameOrientation(newFace) || frontierFace.equalsOppositeOrientation(newFace);
                         if (isOpposite) {
-                            removeFromFrontier.push(frontierFace);
+                            removeFromFrontier.add(frontierFace);
                             notAddToFrontier.add(newFace);
                         }
                     }
@@ -220,8 +244,12 @@ export class Delaunay3D {
             // Update frontier 
             
             exploredFaces.push(faceToProcess);
-            
+            frontier.splice(0,1);
 
-        }   
+        } 
+        
+        this.constructedSimplexes = constructedSimplexes;
+        console.log('constructed simplexes', this.constructedSimplexes);
+        this.totalSteps = step;
     }
 }

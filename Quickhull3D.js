@@ -325,7 +325,6 @@ class Quickhull3D {
     // Reference for setting a color to each face
     // https://playground.babylonjs.com/#Y8HRP3#11
     buildRenderableMesh(scene, singleColor = null) {
-        // console.log('call buildRenderableMesh');
         const vertexData = new BABYLON.VertexData();
 
         // Iterates over the list of faces, adding its vertices to a list and building

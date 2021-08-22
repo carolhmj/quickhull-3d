@@ -85,6 +85,7 @@ function constructHull(inputPoints) {
 function constructDelaunay(inputFaces, scene) {
     const delaunay = new Delaunay3D();
     delaunay.build(inputFaces, scene);
+    return delaunay;
 }
 
 function rndOneMinusOne() {
@@ -153,7 +154,7 @@ function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, single
 
     testGroup.push(...extraVertices);
 
-    // console.log('cylinder test group', testGroup);
+    console.log('cylinder test group', testGroup);
 
     let struct = {
         points: testGroup,
@@ -500,9 +501,32 @@ async function main() {
     //     [],
     //     []));
     // groups.push(makeBoxGroup(2, 10, 10, 10, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), null, []));
+    // groups.push({
+    //     points: [new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,10), new BABYLON.Vector3(0,10,0), new BABYLON.Vector3(0,10,10), 
+    //              new BABYLON.Vector3(10,0,0), new BABYLON.Vector3(10,0,10), new BABYLON.Vector3(10,10,0), new BABYLON.Vector3(10,10,10),
+    //              new BABYLON.Vector3(5,15,5), new BABYLON.Vector3(5,-5,5), new BABYLON.Vector3(15,5,5), new BABYLON.Vector3(5,5,-5)],
+    //     renderPos: new BABYLON.Vector3(0,0,0),
+    //     renderRot: new BABYLON.Vector3(0,0,0),
+    //     singleCol: null
+    // });
+    // groups.push({
+    //     points: [new BABYLON.Vector3(0,1,0), new BABYLON.Vector3(1,1,0), new BABYLON.Vector3(0.5,1,0.5),
+    //             new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(1,0,0), new BABYLON.Vector3(0.5,0,0.5)],
+    //     renderPos: new BABYLON.Vector3(0,0,0),
+    //     renderRot: new BABYLON.Vector3(0,0,0),
+    //     singleCol: null
+    // });
     groups.push({
-        points: [new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,10), new BABYLON.Vector3(0,10,0), new BABYLON.Vector3(0,10,10), 
-                 new BABYLON.Vector3(10,0,0), new BABYLON.Vector3(10,0,10), new BABYLON.Vector3(10,10,0), new BABYLON.Vector3(10,10,10)],
+        points: [
+            new BABYLON.Vector3(8.66,10,-5),
+            new BABYLON.Vector3(8.66,-10,-5),
+            new BABYLON.Vector3(-8.66,10,-5),
+            new BABYLON.Vector3(-8.66,-10,-5),
+            new BABYLON.Vector3(0,10,10),
+            new BABYLON.Vector3(0,-10,10),
+            new BABYLON.Vector3(4.63,-1.08,0.46),
+            new BABYLON.Vector3(0.86,-9.40,-0.50),
+        ],
         renderPos: new BABYLON.Vector3(0,0,0),
         renderRot: new BABYLON.Vector3(0,0,0),
         singleCol: null
@@ -563,6 +587,9 @@ async function main() {
     runDelaunayButton.addEventListener("click", function() {
         groups.forEach(group => {
             group.delaunay = constructDelaunay(group.hull.faces, scene);
+        });
+        groups.forEach(group => {
+            group.delaunay.buildRenderableMesh(scene);
         });
     });
 }

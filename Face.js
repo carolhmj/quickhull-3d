@@ -9,6 +9,8 @@ const FaceTypes = {
     DELETED: 2,
 }
 
+const INTERSECTION_TOLERANCE = 0.01
+
 class Face {
 
     constructor(step) {
@@ -243,7 +245,7 @@ class Face {
             const thisray = new BABYLON.Ray(thisp, thisdir, thisdir.length());
 
             const thisintersection = thisray.intersectsTriangle(other.points[0], other.points[1], other.points[2]);
-            if (thisintersection && thisintersection.distance > 0 && thisintersection.distance < 1) {
+            if (thisintersection && (thisintersection.distance > INTERSECTION_TOLERANCE) && (1 - thisintersection.distance > INTERSECTION_TOLERANCE)) {
                 // console.log('ray', thisray, 'intersects face', other);
                 return true;
             }
@@ -254,7 +256,7 @@ class Face {
             const otherray = new BABYLON.Ray(otherp, otherdir, otherdir.length());
 
             const otherintersection = otherray.intersectsTriangle(this.points[0], this.points[1], this.points[2]);
-            if (otherintersection && otherintersection.distance > 0 && otherintersection.distance < 1) {
+            if (otherintersection && (otherintersection.distance > INTERSECTION_TOLERANCE) && (1 - otherintersection.distance > INTERSECTION_TOLERANCE)) {
                 // console.log('ray', otherray, 'intersects face', this);
                 return true;
             }

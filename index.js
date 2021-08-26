@@ -516,6 +516,12 @@ async function main() {
     //     renderRot: new BABYLON.Vector3(0,0,0),
     //     singleCol: null
     // });
+    const s1 = new Simplex();
+    const s2 = new Simplex();
+    s1.buildFromPoints([new BABYLON.Vector3(0,10,10), new BABYLON.Vector3(8.66,-10,-5), new BABYLON.Vector3(8.66,10,-5), new BABYLON.Vector3(-8.66,10,-5)]);
+    s2.buildFromPoints([new BABYLON.Vector3(8.66,-10,-5), new BABYLON.Vector3(0,10,10), new BABYLON.Vector3(-8.66,10,-5), new BABYLON.Vector3(-8.66,-10,-5)]);
+    console.log('check intersection');
+    s1.intersects(s2);
     groups.push({
         points: [
             new BABYLON.Vector3(8.66,10,-5),

@@ -166,31 +166,25 @@ export class Delaunay3D {
         this.convexHull = inputFaces.filter(face => face.mark === FaceTypes.VISIBLE);
         // Save all the vertices that have to be processed    
         this.vertexList = this.getInputPoints(inputFaces);
-        // Build initial shape (simplex) containing all points to be inserted
-        // this.buildInitialShape(scene);
 
         let frontier = [];
         // Add any face from the convex hull to the face queue
         frontier.push(this.convexHull[0]);
-        // const initialFace = this.getInitialFace(this.vertexList);
 
         const exploredFaces = [];
-        // const explorableVertices = [...this.vertexList];
-
+        
         const constructedSimplexes = [];
         let step = 0;
         // Main loop
         while (frontier.length > 0) {
             const faceToProcess = frontier[0];
-            // frontier.splice(0,1);
-
+            
             // Classify points by highest solid angle
-            // if (explorableVertices.length > 0) {
             let explorableVertices = this.vertexList.filter(v => !v.equalsWithEpsilon(faceToProcess.points[0]) && !v.equalsWithEpsilon(faceToProcess.points[1]) && !v.equalsWithEpsilon(faceToProcess.points[2]));
             explorableVertices.sort((a, b) => 
-            this.tetrSolidAngle(a, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]) 
-            - this.tetrSolidAngle(b, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]));
-            // }
+                this.tetrSolidAngle(a, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]) 
+                - this.tetrSolidAngle(b, faceToProcess.points[0], faceToProcess.points[1], faceToProcess.points[2]));
+            
             let i = explorableVertices.length-1;
             let newPolyhedra;
             while (i >= 0) {
@@ -217,6 +211,8 @@ export class Delaunay3D {
 
                 i--;
             }
+            
+            exploredFaces.push(faceToProcess);
 
             if (newPolyhedra) {
                 step++;
@@ -239,12 +235,11 @@ export class Delaunay3D {
                 const facesToAdd = newPolyhedra.faces.filter(newFace => !notAddToFrontier.has(newFace));
 
                 frontier.push(...facesToAdd);
+            } else {
+                // Update frontier 
+                frontier.splice(0,1);
             }
 
-            // Update frontier 
-            
-            exploredFaces.push(faceToProcess);
-            frontier.splice(0,1);
 
         } 
         

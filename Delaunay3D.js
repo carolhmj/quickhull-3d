@@ -20,13 +20,8 @@ export class Delaunay3D {
         const uniquePts = [];
 
         for (let face of inputFaces) {
-            // console.log('look at face', face);
             if (face.mark === FaceTypes.VISIBLE) {
                 for (let pt of face.points) {
-                    // if (!uniqueIds.has(pt.id)) {
-                    //     uniqueIds.add(pt.id);
-                    //     uniquePts.push(pt);
-                    // }
                     if (!uniquePts.some( upt => upt.equalsWithEpsilon(pt))) {
                         uniquePts.push(pt);
                     }
@@ -89,7 +84,7 @@ export class Delaunay3D {
         const END_OPACITY = CONSTS.HULL_OPACITY;
 
         const colArr = new Array(this.totalSteps);
-        console.log('colarr at start', colArr);
+        // console.log('colarr at start', colArr);
 
         // Create materials and animations for each face
         for (let i = 0; i < lifetime.length; i++) {
@@ -128,18 +123,18 @@ export class Delaunay3D {
                 );
             }
 
-            console.log('keys for face', i, keys);
+            // console.log('keys for face', i, keys);
             animation.setKeys(keys);
 
             animations.addTargetedAnimation(animation, nm);
         }
-        console.log('colArr', colArr);
+        // console.log('colArr', colArr);
 
         animations.normalize();
 
-        console.log('vertices', vertices);
+        // console.log('vertices', vertices);
         vertexData.positions = vertices;
-        console.log('indices', faces);
+        // console.log('indices', faces);
         vertexData.indices = faces;
         // console.log('normals', normals);
         // vertexData.normals = normals;
@@ -149,8 +144,8 @@ export class Delaunay3D {
         // Create a submesh for every face
         this.renderableMesh.subMeshes = [];
         for (let i = 0; i < lifetime.length; i++) {
-            console.log('i', i);
-            console.log('create submesh to face with indices', faces[i*3], faces[i*3+1], faces[i*3+2]);
+            // console.log('i', i);
+            // console.log('create submesh to face with indices', faces[i*3], faces[i*3+1], faces[i*3+2]);
             new BABYLON.SubMesh(i, 0, vertices.length, i*3, 3,  this.renderableMesh);
         }
 
@@ -158,7 +153,7 @@ export class Delaunay3D {
 
         this.constructionAnimation = animations;
 
-        console.log('finished building renderable mesh');
+        // console.log('finished building renderable mesh');
     }
 
     build(inputFaces) {
@@ -244,7 +239,6 @@ export class Delaunay3D {
         } 
         
         this.constructedSimplexes = constructedSimplexes;
-        console.log('constructed simplexes', this.constructedSimplexes);
         this.totalSteps = step;
     }
 }

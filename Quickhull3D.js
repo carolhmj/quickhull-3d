@@ -319,6 +319,7 @@ class Quickhull3D {
                 }
             }
         }
+        console.log('construct hull done');
         this.totalSteps = step;
     }
 
@@ -415,6 +416,7 @@ class Quickhull3D {
         this.renderableMesh.material = multimaterial;
 
         this.constructionAnimation = animations;
+        console.log('renderable mesh build');
     }
 }
 

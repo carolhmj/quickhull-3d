@@ -48,8 +48,8 @@ function createScene(engine, canvas) {
     // This creates and positions a free camera (non-mesh)
     var camera = new BABYLON.ArcRotateCamera(
         "camera1", 
-        Math.PI/6, 
-        Math.PI/4, 
+        1.3*Math.PI/2, 
+        1.2*Math.PI/4, 
         60, 
         new BABYLON.Vector3(0,0,0), 
         scene
@@ -154,7 +154,7 @@ function makeCylinderGroup(nSubdiv, height, radius, renderPos, renderRot, single
 
     testGroup.push(...extraVertices);
 
-    console.log('cylinder test group', testGroup);
+    // console.log('cylinder test group', testGroup);
 
     let struct = {
         points: testGroup,
@@ -248,8 +248,10 @@ function makeSphereGroup(nPts, radius, renderPos, singleCol, verticesUnderHeight
 function buildThemeGroups() {
     const groups = [];
     
-    const sph_sub = 80;
-    const cyl_sub = 20;
+    // const sph_sub = 80;
+    const sph_sub = 70;
+    // const cyl_sub = 20;
+    const cyl_sub = 19;
     const mid_t_height = 7;
     const mid_t_radius = 6;
     const ul_t_radius = 5;
@@ -267,10 +269,8 @@ function buildThemeGroups() {
     const foot_x_pos = 1;
     const hand_w = 3;
     const hand_h = 4;
-    const hand_d = 1;
-    const hand_pts = 3;
-    const hand_x_pos = 13;
-    const hand_y_pos = 4;
+    const hand_d = 2;
+    const hand_pts = 2;
     
     const head_connection = [];
     // head
@@ -383,7 +383,7 @@ function buildThemeGroups() {
     // lower torso
     groups.push(
         makeCylinderGroup(
-            cyl_sub, 
+            15, 
             ul_t_height, 
             ul_t_radius, 
             new BABYLON.Vector3(0,-ul_t_height/2 - mid_t_height/2,0), 
@@ -434,31 +434,19 @@ function buildThemeGroups() {
 }
 
 
-function buildRandomExampleShape(scene) {
-    const exampleMeshes = [
-        BABYLON.MeshBuilder.CreateBox("example-box", {width: 25, height: 20, depth: 15}, scene),
-        BABYLON.MeshBuilder.CreateSphere("example-sphere", {diameter: 25}, scene),
-        BABYLON.MeshBuilder.CreateCylinder("example-cylinder", {height: 25, diameter: 20}, scene),
-        BABYLON.MeshBuilder.CreateCapsule("example-capsule", {height: 25, radius: 20}, scene)
-    ];
-
-    exampleMeshes.forEach(mesh => mesh.setEnabled(false));
-
-    const selectedMesh = exampleMeshes[Math.floor(Math.random() * exampleMeshes.length)];
+function buildRandomExampleShape() {
+    let selectedMesh = null;
+    const selectedMeshIdx = Math.floor(Math.random()*3);
+    console.log('selected mesh')
+    if (selectedMeshIdx === 0) {
+        selectedMesh = makeBoxGroup(3, 10,10,10, new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,0), null, []);
+    } else if (selectedMeshIdx === 1) {
+        selectedMesh =  makeCylinderGroup(18, 10, 10, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), null, [], [], []);
+    } else if (selectedMeshIdx === 2) {
+        selectedMesh = makeSphereGroup(44, 6, new BABYLON.Vector3(0,0,0), null, 0, []);
+    }
     console.log('selectedMesh', selectedMesh);
-
-    const pcs = new BABYLON.PointsCloudSystem("pcs", 2);
-    pcs.addSurfacePoints(selectedMesh, 10);
-    pcs.addVolumePoints(selectedMesh, 20);
-
-    pcs.buildMeshAsync(() => {});
-
-    return [{
-        points: pcs.particles.map(p => p.position),
-        renderPos: new BABYLON.Vector3(0,0,0),
-        renderRot: new BABYLON.Vector3(0,0,0),
-        singleCol: null
-    }];
+    return [selectedMesh];
 }
 
 async function main() {
@@ -487,56 +475,7 @@ async function main() {
         groups = buildThemeGroups();
     });
 
-    // groups = buildThemeGroups();
-    // groups = buildRandomExampleShape(scene);
-    groups = [];
-    // groups.push(makeCylinderGroup(
-    //     3, 
-    //     20, 
-    //     10, 
-    //     new BABYLON.Vector3(0,0,0), 
-    //     new BABYLON.Vector3(0,0,0), 
-    //     new BABYLON.Color3(0,1,1),
-    //     [],
-    //     [],
-    //     []));
-    // groups.push(makeBoxGroup(2, 10, 10, 10, new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,0), null, []));
-    // groups.push({
-    //     points: [new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(0,0,10), new BABYLON.Vector3(0,10,0), new BABYLON.Vector3(0,10,10), 
-    //              new BABYLON.Vector3(10,0,0), new BABYLON.Vector3(10,0,10), new BABYLON.Vector3(10,10,0), new BABYLON.Vector3(10,10,10),
-    //              new BABYLON.Vector3(5,15,5), new BABYLON.Vector3(5,-5,5), new BABYLON.Vector3(15,5,5), new BABYLON.Vector3(5,5,-5)],
-    //     renderPos: new BABYLON.Vector3(0,0,0),
-    //     renderRot: new BABYLON.Vector3(0,0,0),
-    //     singleCol: null
-    // });
-    // groups.push({
-    //     points: [new BABYLON.Vector3(0,1,0), new BABYLON.Vector3(1,1,0), new BABYLON.Vector3(0.5,1,0.5),
-    //             new BABYLON.Vector3(0,0,0), new BABYLON.Vector3(1,0,0), new BABYLON.Vector3(0.5,0,0.5)],
-    //     renderPos: new BABYLON.Vector3(0,0,0),
-    //     renderRot: new BABYLON.Vector3(0,0,0),
-    //     singleCol: null
-    // });
-    const s1 = new Simplex();
-    const s2 = new Simplex();
-    s1.buildFromPoints([new BABYLON.Vector3(0,10,10), new BABYLON.Vector3(8.66,-10,-5), new BABYLON.Vector3(8.66,10,-5), new BABYLON.Vector3(-8.66,10,-5)]);
-    s2.buildFromPoints([new BABYLON.Vector3(8.66,-10,-5), new BABYLON.Vector3(0,10,10), new BABYLON.Vector3(-8.66,10,-5), new BABYLON.Vector3(-8.66,-10,-5)]);
-    console.log('check intersection');
-    s1.intersects(s2);
-    groups.push({
-        points: [
-            new BABYLON.Vector3(8.66,10,-5),
-            new BABYLON.Vector3(8.66,-10,-5),
-            new BABYLON.Vector3(-8.66,10,-5),
-            new BABYLON.Vector3(-8.66,-10,-5),
-            new BABYLON.Vector3(0,10,10),
-            new BABYLON.Vector3(0,-10,10),
-            new BABYLON.Vector3(4.63,-1.08,0.46),
-            new BABYLON.Vector3(0.86,-9.40,-0.50),
-        ],
-        renderPos: new BABYLON.Vector3(0,0,0),
-        renderRot: new BABYLON.Vector3(0,0,0),
-        singleCol: null
-    });
+    groups = buildThemeGroups();
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -547,21 +486,6 @@ async function main() {
     window.addEventListener("resize", function () {
         engine.resize();
     });
-
-    const a = new BABYLON.Vector3(0,10,10);
-    const b = new BABYLON.Vector3(0,0,10);
-    const c = new BABYLON.Vector3(10,0,10);
-    const d = new BABYLON.Vector3(0,0,0);
-    const e = new BABYLON.Vector3(10,10,10);
-    // const t1 = new Face();
-    // t1.buildFromPoints(a,b,c);
-    // const t2 = new Face();
-    // t2.buildFromPoints(c,b,a);
-    // const t1 = new Simplex();
-    // t1.buildFromPoints([a, b, c, d]);
-    // const t2 = new Simplex();
-    // t2.buildFromPoints([a, c, d, e]);
-    // console.log('t1 intersects t2?', t1.intersects(t2));
 
     const debugButton = document.getElementById("debugButton");
     debugButton.addEventListener("click", function() {
@@ -592,11 +516,19 @@ async function main() {
     const runDelaunayButton = document.getElementById("runDelaunay");
     runDelaunayButton.addEventListener("click", function() {
         groups.forEach(group => {
+            console.log('start building delaunay...');
+            group.hull.renderableMesh.isVisible = false;
             group.delaunay = constructDelaunay(group.hull.faces, scene);
         });
         groups.forEach(group => {
+            console.log('start building renderable delaunay mesh...');
             group.delaunay.buildRenderableMesh(scene);
         });
+    });
+
+    const showDelaunayButton = document.getElementById("showDelaunay");
+    showDelaunayButton.addEventListener("click", function() {
+        groups.forEach(({delaunay}) => delaunay.constructionAnimation.start(false, CONSTS.ANIM_SPEED));
     });
 }
 
